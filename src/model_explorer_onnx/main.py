@@ -69,9 +69,10 @@ def get_function_graph_name(identifier: ir.OperatorIdentifier) -> str:
     return name
 
 
-def get_node_input_schema_name(
+def get_node_input_param_name(
     schema: onnx.defs.OpSchema, input_index: int
 ) -> str | None:
+    """Get the name of the input parameter of the node from OpSchema."""
     try:
         if len(schema.inputs) == 0:
             # Invalid schema. Return the input index as a fallback.
@@ -90,9 +91,10 @@ def get_node_input_schema_name(
     return None
 
 
-def get_node_output_schema_name(
+def get_node_output_param_name(
     schema: onnx.defs.OpSchema, output_index: int
 ) -> str | None:
+    """Get the name of the output parameter of the node from OpSchema."""
     try:
         if len(schema.outputs) == 0:
             # Invalid schema. Return the output index as a fallback.
@@ -134,7 +136,7 @@ def add_inputs_metadata(
                 )
             )
         if schema is not None:
-            if (param_name := get_node_input_schema_name(schema, i)) is not None:
+            if (param_name := get_node_input_param_name(schema, i)) is not None:
                 metadata.attrs.append(
                     graph_builder.KeyValue(key="param_name", value=param_name)
                 )
@@ -165,7 +167,7 @@ def add_outputs_metadata(
             output_index = output.index()
             assert output_index is not None
             if (
-                param_name := get_node_output_schema_name(schema, output_index)
+                param_name := get_node_output_param_name(schema, output_index)
             ) is not None:
                 metadata.attrs.append(
                     graph_builder.KeyValue(key="param_name", value=param_name)
