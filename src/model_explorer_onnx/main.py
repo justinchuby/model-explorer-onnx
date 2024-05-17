@@ -203,15 +203,34 @@ logger = logging.getLogger(__name__)
 #   def convert(self) -> ModelExplorerGraphs:
 #     return {'graphs': [self.create_graph()]}
 
+
+def add_inputs_metadata(onnx_node: ir.Node, node: graph_builder.GraphNode):
+    for i, input_value in enumerate(onnx_node.inputs):
+        metadata = graph_builder.MetadataItem(id=str(i), attrs=[])
+        if input_value is None:
+            metadata.attrs.append(graph_builder.KeyValue(key="__tensor_tag", value=""))
+        else:
+            metadata.attrs.append(
+                graph_builder.KeyValue(key="__tensor_tag", value=input_value.name or "")
+            )
+        node.inputsMetadata.append(metadata)
+
+
 def add_outputs_metadata(onnx_node: ir.Node, node: graph_builder.GraphNode):
     for output in onnx_node.outputs:
         metadata = graph_builder.MetadataItem(id=str(output.index()), attrs=[])
         dtype = str(output.dtype)
         type_str = str(output.type)
         shape = str(output.shape)
-        metadata.attrs.append(graph_builder.KeyValue(key='tensor_shape', value=dtype + shape))
-        metadata.attrs.append(graph_builder.KeyValue(key='type', value=type_str))
+        metadata.attrs.append(
+            graph_builder.KeyValue(key="__tensor_tag", value=output.name or "")
+        )
+        metadata.attrs.append(
+            graph_builder.KeyValue(key="tensor_shape", value=dtype + shape)
+        )
+        metadata.attrs.append(graph_builder.KeyValue(key="type", value=type_str))
         node.outputsMetadata.append(metadata)
+
 
 def add_node_attrs(onnx_node: ir.Node, node: graph_builder.GraphNode):
     for attr in onnx_node.attributes.values():
@@ -225,6 +244,7 @@ def add_node_attrs(onnx_node: ir.Node, node: graph_builder.GraphNode):
                     key=attr.name, value=f"Ref({attr.ref_attr_name})"
                 )
             )
+
 
 def add_incoming_edges(onnx_node: ir.Node, node: graph_builder.GraphNode):
     for target_input_id, input_value in enumerate(onnx_node.inputs):
@@ -250,14 +270,17 @@ def add_incoming_edges(onnx_node: ir.Node, node: graph_builder.GraphNode):
             )
         )
 
+
 def create_op_label(domain: str, op_type: str) -> str:
     if domain in {"", "ai.onnx"}:
         return op_type
     return f"{domain}::{op_type}"
 
-def create_node(onnx_node: ir.Node) -> graph_builder.GraphNode:
+
+def create_node(onnx_node: ir.Node) -> graph_builder.GraphNode | None:
     if onnx_node.name is None:
         logger.warning("Node does not have a name. Skipping node %s.", onnx_node)
+        return None
     node = graph_builder.GraphNode(
         id=onnx_node.name,
         label=create_op_label(onnx_node.domain, onnx_node.op_type),
@@ -265,32 +288,36 @@ def create_node(onnx_node: ir.Node) -> graph_builder.GraphNode:
     )
     add_incoming_edges(onnx_node, node)
     add_node_attrs(onnx_node, node)
+    add_inputs_metadata(onnx_node, node)
     add_outputs_metadata(onnx_node, node)
     return node
 
-def create_graph(onnx_graph: ir.Graph) -> graph_builder.Graph:
+
+def create_graph(onnx_graph: ir.Graph | ir.Function) -> graph_builder.Graph:
     graph = graph_builder.Graph(id="graph", nodes=[])
-    for node in onnx_graph:
-        graph.nodes.append(create_node(node))
+    for onnx_node in onnx_graph:
+        node = create_node(onnx_node)
+        if node is None:
+            continue
+        graph.nodes.append(node)
     return graph
-
-
 
 
 class ONNXAdapter(model_explorer.Adapter):
     metadata = model_explorer.AdapterMetadata(
-        id="my_adapter",
+        id="onnx_adapter",
         name="ONNX adapter",
-        description="My first adapter!",
-        source_repo="https://github.com/user/my_adapter",
+        description="ONNX adapter for Model Explorer",
+        source_repo="https://github.com/justinchuby/model_explorer_onnx",
         fileExts=["onnx", "onnxtext", "onnxtxt"],
     )
-
-    # Required.
-    def __init__(self):
-        super().__init__()
 
     def convert(
         self, model_path: str, settings: dict[str, Any]
     ) -> model_explorer.ModelExplorerGraphs:
-        return {"graphs": []}
+        onnx_model = onnx.load(model_path)
+        model = ir.serde.deserialize_model(onnx_model)
+        graphs = [create_graph(model.graph)]
+        for function in model.functions.values():
+            graphs.append(create_graph(function))
+        return {"graphs": graphs}
