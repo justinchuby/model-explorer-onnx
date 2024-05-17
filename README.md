@@ -11,7 +11,7 @@ pip install --upgrade model-explorer-onnx
 ## Usage
 
 ```bash
-model-explorer model.onnx --extensions=model_explorer_onnx
+model-explorer --extensions=model_explorer_onnx
 ```
 
 ## Screenshots
