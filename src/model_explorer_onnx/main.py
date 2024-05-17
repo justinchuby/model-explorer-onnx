@@ -8,6 +8,8 @@ import model_explorer
 import onnx
 from model_explorer import graph_builder
 from onnxscript import ir
+import numpy as np
+import ml_dtypes
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +19,10 @@ _TENSOR_DISPLAY_LIMIT = 1024
 def display_tensor(tensor: ir.TensorProtocol) -> str:
     if tensor.size < _TENSOR_DISPLAY_LIMIT:
         try:
-            return str(tensor.numpy())
+            array = tensor.numpy()
+            if tensor.dtype == ir.DataType.BFLOAT16:
+                array.astype(ml_dtypes.bfloat16)
+            return np.array2string(array, separator=",")
         except Exception as e:
             logger.warning("Failed to display tensor: %s", e)
             return str(tensor)
@@ -226,6 +231,7 @@ def create_graph(onnx_graph: ir.Graph | ir.Function) -> graph_builder.Graph | No
 
 class ONNXAdapter(model_explorer.Adapter):
     """Adapter for ONNX models."""
+
     metadata = model_explorer.AdapterMetadata(
         id="onnx_adapter",
         name="ONNX adapter",
