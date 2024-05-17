@@ -229,7 +229,7 @@ class ONNXAdapter(model_explorer.Adapter):
         name="ONNX adapter",
         description="ONNX adapter for Model Explorer",
         source_repo="https://github.com/justinchuby/model_explorer_onnx",
-        fileExts=["onnx", "onnxtext", "onnxtxt"],
+        fileExts=["onnx", "onnxtext", "onnxtxt", "textproto", "onnxjson", "json"],
     )
 
     def convert(
