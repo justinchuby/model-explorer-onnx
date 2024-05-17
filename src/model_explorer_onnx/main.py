@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any, Literal, Sequence
 
 import model_explorer
@@ -224,6 +225,7 @@ def create_graph(onnx_graph: ir.Graph | ir.Function) -> graph_builder.Graph | No
 
 
 class ONNXAdapter(model_explorer.Adapter):
+    """Adapter for ONNX models."""
     metadata = model_explorer.AdapterMetadata(
         id="onnx_adapter",
         name="ONNX adapter",
@@ -235,15 +237,30 @@ class ONNXAdapter(model_explorer.Adapter):
     def convert(
         self, model_path: str, settings: dict[str, Any]
     ) -> model_explorer.ModelExplorerGraphs:
-        # TODO: Add shape inference and tensor display size as settings
-        onnx_model = onnx.load(model_path)
-        onnx_model = onnx.shape_inference.infer_shapes(onnx_model)
+        del settings  # Unused
+
+        onnx_model = onnx.load(model_path, load_external_data=False)
+        try:
+            onnx_model = onnx.shape_inference.infer_shapes(onnx_model)
+        except Exception as e:
+            logger.warning(
+                "Failed to infer shapes. Continue with the original model. Error: %s", e
+            )
+
+        # Load external data after shape inference
+        model_filepath = os.path.abspath(model_path)
+        base_dir = os.path.dirname(model_filepath)
+        onnx.load_external_data_for_model(onnx_model, base_dir)
+
+        # Convert to ONNX IR
         model = ir.serde.deserialize_model(onnx_model)
         main_graph = create_graph(model.graph)
         graphs = []
         main_graph = create_graph(model.graph)
         assert main_graph is not None
         graphs.append(main_graph)
+
+        # TODO: Better support functions and subgraphs
         for function in model.functions.values():
             function_graph = create_graph(function)
             assert function_graph is not None
