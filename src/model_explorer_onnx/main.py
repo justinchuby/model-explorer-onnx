@@ -54,7 +54,11 @@ def format_tensor_shape(value: ir.Value | ir.TensorProtocol) -> str:
 
 
 def get_graph_io_node_name(value: ir.Value) -> str:
-    return f"io:{value.name}"
+    return f"[io]{value.name}"
+
+
+def get_initializer_node_name(value: ir.Value) -> str:
+    return f"[initializer]{value.name}"
 
 
 def add_inputs_metadata(onnx_node: ir.Node, node: graph_builder.GraphNode):
@@ -116,30 +120,25 @@ def add_incoming_edges(
             continue
         if input_value in graph_inputs:
             # The input is a graph input. Create an input edge.
-            node.incomingEdges.append(
-                graph_builder.IncomingEdge(
-                    sourceNodeId=get_graph_io_node_name(input_value),
-                    sourceNodeOutputId="0",
-                    targetNodeInputId=str(target_input_id),
-                )
-            )
-            continue
-        input_node = input_value.producer()
-        if input_node is None:
-            logger.debug(
-                "Input value %s does not have a producer. Treating as initializer.",
-                input_value,
-            )
-            source_node_id = input_value.name
+            source_node_id = get_graph_io_node_name(input_value)
             source_node_output_id = "0"
-        elif not input_node.name:
-            logger.debug(
-                "Node %s does not have a name. Skipping incoming edge.", input_node
-            )
-            continue
         else:
-            source_node_id = input_node.name
-            source_node_output_id = str(input_value.index())
+            input_node = input_value.producer()
+            if input_node is None:
+                logger.debug(
+                    "Input value %s does not have a producer. Treating as initializer.",
+                    input_value,
+                )
+                source_node_id = get_initializer_node_name(input_value)
+                source_node_output_id = "0"
+            elif not input_node.name:
+                logger.debug(
+                    "Node %s does not have a name. Skipping incoming edge.", input_node
+                )
+                continue
+            else:
+                source_node_id = input_node.name
+                source_node_output_id = str(input_value.index())
         assert source_node_id is not None
         node.incomingEdges.append(
             graph_builder.IncomingEdge(
@@ -235,7 +234,7 @@ def add_initializers(
             )
             continue
         node = graph_builder.GraphNode(
-            id=initializer.name,  # type: ignore
+            id=get_initializer_node_name(initializer),
             label=initializer.name,  # type: ignore
             namespace=namespace,
         )
