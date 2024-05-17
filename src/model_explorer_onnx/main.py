@@ -4,12 +4,12 @@ import logging
 import os
 from typing import Any, Literal, Sequence
 
+import ml_dtypes
 import model_explorer
+import numpy as np
 import onnx
 from model_explorer import graph_builder
 from onnxscript import ir
-import numpy as np
-import ml_dtypes
 
 logger = logging.getLogger(__name__)
 
