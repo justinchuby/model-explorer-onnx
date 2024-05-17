@@ -295,7 +295,7 @@ def create_graph(
     for onnx_node in onnx_graph:
         node = create_node(
             onnx_node,
-            graph_inputs, # type: ignore
+            graph_inputs,  # type: ignore
             namespace=graph_name,
             all_function_ids=all_function_ids,
         )  # type: ignore
