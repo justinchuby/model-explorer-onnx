@@ -121,7 +121,6 @@ def create_node(
     embedded_namespace = onnx_node.name.split("/")[0:-1]
     if embedded_namespace:
         namespace = namespace + "/".join(embedded_namespace)
-    print(namespace)
     node = graph_builder.GraphNode(
         id=onnx_node.name,
         label=create_op_label(onnx_node.domain, onnx_node.op_type),
