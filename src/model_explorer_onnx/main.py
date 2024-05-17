@@ -75,7 +75,7 @@ def get_node_input_param_name(
     """Get the name of the input parameter of the node from OpSchema."""
     try:
         if len(schema.inputs) == 0:
-            # Invalid schema. Return the input index as a fallback.
+            # Invalid schema.
             return None
         if input_index < len(schema.inputs):
             return schema.inputs[input_index].name
