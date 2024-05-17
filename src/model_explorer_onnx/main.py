@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any, Literal, Sequence
 
+import ml_dtypes
 import model_explorer
+import numpy as np
 import onnx
 from model_explorer import graph_builder
 from onnxscript import ir
@@ -13,14 +16,49 @@ logger = logging.getLogger(__name__)
 _TENSOR_DISPLAY_LIMIT = 1024
 
 
-def display_tensor(tensor: ir.TensorProtocol) -> str:
+def display_tensor(tensor: ir.TensorProtocol | None) -> str:
+    if tensor is None:
+        return "Data not available"
     if tensor.size < _TENSOR_DISPLAY_LIMIT:
         try:
-            return str(tensor.numpy())
+            array = tensor.numpy()
+            if tensor.dtype == ir.DataType.BFLOAT16:
+                array.astype(ml_dtypes.bfloat16)
+            elif tensor.dtype == ir.DataType.FLOAT8E4M3FN:
+                array.astype(ml_dtypes.float8_e4m3fn)
+            elif tensor.dtype == ir.DataType.FLOAT8E4M3FNUZ:
+                array.astype(ml_dtypes.float8_e4m3fnuz)
+            elif tensor.dtype == ir.DataType.FLOAT8E5M2:
+                array.astype(ml_dtypes.float8_e5m2)
+            elif tensor.dtype == ir.DataType.FLOAT8E5M2FNUZ:
+                array.astype(ml_dtypes.float8_e5m2fnuz)
+            return np.array2string(array, separator=",")
         except Exception as e:
             logger.warning("Failed to display tensor: %s", e)
             return str(tensor)
     return str(tensor)
+
+
+def format_shape(shape: ir.ShapeProtocol | None) -> str:
+    return str(shape) if shape is not None else "[?]"
+
+
+def format_type(type: ir.TypeProtocol | None) -> str:
+    return str(type) if type is not None else "?"
+
+
+def format_tensor_shape(value: ir.Value | ir.TensorProtocol) -> str:
+    if isinstance(value, ir.Value):
+        return f"{format_type(value.type)}{format_shape(value.shape)}"
+    return f"{value.dtype or '?'}{format_shape(value.shape)}"
+
+
+def get_graph_io_node_name(value: ir.Value) -> str:
+    return f"[io]{value.name}"
+
+
+def get_initializer_node_name(value: ir.Value) -> str:
+    return f"[initializer]{value.name}"
 
 
 def add_inputs_metadata(onnx_node: ir.Node, node: graph_builder.GraphNode):
@@ -32,21 +70,26 @@ def add_inputs_metadata(onnx_node: ir.Node, node: graph_builder.GraphNode):
             metadata.attrs.append(
                 graph_builder.KeyValue(key="__tensor_tag", value=input_value.name or "")
             )
+            # tensor_shape is a special key that is used to display the type and shape of the tensor
+            metadata.attrs.append(
+                graph_builder.KeyValue(
+                    key="tensor_shape", value=format_tensor_shape(input_value)
+                )
+            )
         node.inputsMetadata.append(metadata)
 
 
 def add_outputs_metadata(onnx_node: ir.Node, node: graph_builder.GraphNode):
     for output in onnx_node.outputs:
         metadata = graph_builder.MetadataItem(id=str(output.index()), attrs=[])
-        type_str = str(output.type)
-        shape_text = str(output.shape) if output.shape is not None else "[?]"
-
         metadata.attrs.append(
             graph_builder.KeyValue(key="__tensor_tag", value=output.name or "")
         )
         # tensor_shape is a special key that is used to display the type and shape of the tensor
         metadata.attrs.append(
-            graph_builder.KeyValue(key="tensor_shape", value=f"{type_str}{shape_text}")
+            graph_builder.KeyValue(
+                key="tensor_shape", value=format_tensor_shape(output)
+            )
         )
         node.outputsMetadata.append(metadata)
 
@@ -77,30 +120,26 @@ def add_incoming_edges(
             continue
         if input_value in graph_inputs:
             # The input is a graph input. Create an input edge.
-            node.incomingEdges.append(
-                graph_builder.IncomingEdge(
-                    sourceNodeId=input_value.name,  # type: ignore
-                    sourceNodeOutputId="0",
-                    targetNodeInputId=str(target_input_id),
-                )
-            )
-            continue
-        input_node = input_value.producer()
-        if input_node is None:
-            logger.debug(
-                "Input value %s does not have a producer. Treating as initializer.",
-                input_value,
-            )
-            source_node_id = input_value.name
+            source_node_id = get_graph_io_node_name(input_value)
             source_node_output_id = "0"
-        elif not input_node.name:
-            logger.debug(
-                "Node %s does not have a name. Skipping incoming edge.", input_node
-            )
-            continue
         else:
-            source_node_id = input_node.name
-            source_node_output_id = str(input_value.index())
+            input_node = input_value.producer()
+            if input_node is None:
+                logger.debug(
+                    "Input value %s does not have a producer. Treating as initializer.",
+                    input_value,
+                )
+                source_node_id = get_initializer_node_name(input_value)
+                source_node_output_id = "0"
+            elif not input_node.name:
+                logger.debug(
+                    "Node %s does not have a name. Skipping incoming edge.", input_node
+                )
+                continue
+            else:
+                source_node_id = input_node.name
+                source_node_output_id = str(input_value.index())
+        assert source_node_id is not None
         node.incomingEdges.append(
             graph_builder.IncomingEdge(
                 sourceNodeId=source_node_id,
@@ -143,10 +182,11 @@ def add_graph_io(
     graph: graph_builder.Graph,
     input_or_outputs: Sequence[ir.Value],
     type: Literal["Input", "Output"],
+    all_nodes: dict[str, graph_builder.GraphNode],
 ):
     for value in input_or_outputs:
         node = graph_builder.GraphNode(
-            id=value.name,  # type: ignore
+            id=get_graph_io_node_name(value),
             label=value.name,  # type: ignore
         )
         producer = value.producer()
@@ -158,16 +198,44 @@ def add_graph_io(
                     targetNodeInputId="0",
                 )
             )
+        if type == "Input":
+            metadata = graph_builder.MetadataItem(id="0", attrs=[])
+            metadata.attrs.append(
+                graph_builder.KeyValue(key="__tensor_tag", value=value.name or "")
+            )
+            # tensor_shape is a special key that is used to display the type and shape of the tensor
+            metadata.attrs.append(
+                graph_builder.KeyValue(
+                    key="tensor_shape", value=format_tensor_shape(value)
+                )
+            )
+            node.outputsMetadata.append(metadata)
         node.attrs.append(graph_builder.KeyValue(key="type", value=type))
         graph.nodes.append(node)
+        # Record nodes for quick lookup
+        all_nodes[node.id] = node
 
 
 def add_initializers(
-    graph: graph_builder.Graph, initializers: Sequence[ir.Value], namespace: str
+    graph: graph_builder.Graph,
+    initializers: Sequence[ir.Value],
+    namespace: str,
+    all_nodes: dict[str, graph_builder.GraphNode],
 ):
     for initializer in initializers:
+        initializer_node_name = get_initializer_node_name(initializer)
+        if initializer_node_name in all_nodes:
+            # The initializer is also a graph input. Fill in the missing metadata.
+            node = all_nodes[initializer_node_name]
+            metadata = node.outputsMetadata[0]
+            metadata.attrs.append(
+                graph_builder.KeyValue(
+                    key="value", value=display_tensor(initializer.const_value)
+                )
+            )
+            continue
         node = graph_builder.GraphNode(
-            id=initializer.name,  # type: ignore
+            id=initializer_node_name,
             label=initializer.name,  # type: ignore
             namespace=namespace,
         )
@@ -181,18 +249,14 @@ def add_initializers(
             graph.nodes.append(node)
             continue
         metadata = graph_builder.MetadataItem(id="0", attrs=[])
-        shape_text = (
-            str(initializer.const_value.shape)
-            if initializer.const_value.shape is not None
-            else "[?]"
-        )
         metadata.attrs.append(
             graph_builder.KeyValue(key="__tensor_tag", value=initializer.name or "")
         )
         # tensor_shape is a special key that is used to display the type and shape of the tensor
         metadata.attrs.append(
             graph_builder.KeyValue(
-                key="tensor_shape", value=f"{initializer.const_value.dtype}{shape_text}"
+                key="tensor_shape",
+                value=f"{initializer.const_value.dtype}{format_shape(initializer.const_value.shape)}",
             )
         )
         metadata.attrs.append(
@@ -210,20 +274,33 @@ def create_graph(onnx_graph: ir.Graph | ir.Function) -> graph_builder.Graph | No
         return None
     graph = graph_builder.Graph(id=onnx_graph.name or "graph", nodes=[])
     graph_inputs = set(onnx_graph.inputs)
+    all_nodes = {}
+    add_graph_io(graph, onnx_graph.inputs, type="Input", all_nodes=all_nodes)
+
     for onnx_node in onnx_graph:
-        node = create_node(onnx_node, graph_inputs, namespace=onnx_graph.name)
+        node = create_node(onnx_node, graph_inputs, namespace=onnx_graph.name)  # type: ignore
         if node is None:
             continue
         graph.nodes.append(node)
-    add_graph_io(graph, onnx_graph.inputs, type="Input")
+        all_nodes[node.id] = node
+
     # Add initializers
     if isinstance(onnx_graph, ir.Graph):
-        add_initializers(graph, list(onnx_graph.initializers.values()), onnx_graph.name)
-    add_graph_io(graph, onnx_graph.outputs, type="Output")
+        add_initializers(
+            graph,
+            list(onnx_graph.initializers.values()),
+            onnx_graph.name,
+            all_nodes=all_nodes,
+        )
+
+    # Add outputs
+    add_graph_io(graph, onnx_graph.outputs, type="Output", all_nodes=all_nodes)
     return graph
 
 
 class ONNXAdapter(model_explorer.Adapter):
+    """Adapter for ONNX models."""
+
     metadata = model_explorer.AdapterMetadata(
         id="onnx_adapter",
         name="ONNX adapter",
@@ -235,15 +312,30 @@ class ONNXAdapter(model_explorer.Adapter):
     def convert(
         self, model_path: str, settings: dict[str, Any]
     ) -> model_explorer.ModelExplorerGraphs:
-        # TODO: Add shape inference and tensor display size as settings
-        onnx_model = onnx.load(model_path)
-        onnx_model = onnx.shape_inference.infer_shapes(onnx_model)
+        del settings  # Unused
+
+        onnx_model = onnx.load(model_path, load_external_data=False)
+        try:
+            onnx_model = onnx.shape_inference.infer_shapes(onnx_model)
+        except Exception as e:
+            logger.warning(
+                "Failed to infer shapes. Continue with the original model. Error: %s", e
+            )
+
+        # Load external data after shape inference
+        model_filepath = os.path.abspath(model_path)
+        base_dir = os.path.dirname(model_filepath)
+        onnx.load_external_data_for_model(onnx_model, base_dir)
+
+        # Convert to ONNX IR
         model = ir.serde.deserialize_model(onnx_model)
         main_graph = create_graph(model.graph)
         graphs = []
         main_graph = create_graph(model.graph)
         assert main_graph is not None
         graphs.append(main_graph)
+
+        # TODO: Better support functions and subgraphs
         for function in model.functions.values():
             function_graph = create_graph(function)
             assert function_graph is not None

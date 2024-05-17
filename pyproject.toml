@@ -27,6 +27,8 @@ classifiers = [
 
 dependencies = [
   "ai-edge-model-explorer",
+  "numpy",
   "onnx",
-  "onnxscript",
+  "onnxscript>=0.1.0.dev20240517",
+  "ml_dtypes",
 ]
