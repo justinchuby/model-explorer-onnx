@@ -38,15 +38,15 @@ def add_outputs_metadata(onnx_node: ir.Node, node: graph_builder.GraphNode):
     for output in onnx_node.outputs:
         metadata = graph_builder.MetadataItem(id=str(output.index()), attrs=[])
         type_str = str(output.type)
-        shape_text = str(output.shape) if output.shape is not None else "?"
+        shape_text = str(output.shape) if output.shape is not None else "[?]"
 
         metadata.attrs.append(
             graph_builder.KeyValue(key="__tensor_tag", value=output.name or "")
         )
+        # tensor_shape is a special key that is used to display the type and shape of the tensor
         metadata.attrs.append(
-            graph_builder.KeyValue(key="tensor_shape", value=f"{shape_text}")
+            graph_builder.KeyValue(key="tensor_shape", value=f"{type_str}{shape_text}")
         )
-        metadata.attrs.append(graph_builder.KeyValue(key="type", value=type_str))
         node.outputsMetadata.append(metadata)
 
 
@@ -118,9 +118,10 @@ def create_node(
         logger.warning("Node does not have a name. Skipping node %s.", onnx_node)
         return None
 
-    embedded_namespace = onnx_node.name.split("/")[0:-1]
+    embedded_namespace = onnx_node.name.lstrip("/").split("/")[0:-1]
+    embedded_namespace = [ns or "<anonymous>" for ns in embedded_namespace]
     if embedded_namespace:
-        namespace = namespace + "/".join(embedded_namespace)
+        namespace = namespace + "/" + "/".join(embedded_namespace)
     node = graph_builder.GraphNode(
         id=onnx_node.name,
         label=create_op_label(onnx_node.domain, onnx_node.op_type),
@@ -174,16 +175,14 @@ def add_initializers(
         shape_text = (
             str(initializer.const_value.shape)
             if initializer.const_value.shape is not None
-            else "?"
+            else "[?]"
         )
         metadata.attrs.append(
             graph_builder.KeyValue(key="__tensor_tag", value=initializer.name or "")
         )
+        # tensor_shape is a special key that is used to display the type and shape of the tensor
         metadata.attrs.append(
-            graph_builder.KeyValue(key="tensor_shape", value=f"{shape_text}")
-        )
-        metadata.attrs.append(
-            graph_builder.KeyValue(key="type", value=str(initializer.const_value.dtype))
+            graph_builder.KeyValue(key="tensor_shape", value=f"{initializer.const_value.dtype}{shape_text}")
         )
         metadata.attrs.append(
             graph_builder.KeyValue(
