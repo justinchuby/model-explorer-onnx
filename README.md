@@ -1,5 +1,6 @@
-# model-explorer-onnx
-ONNX Adapter for model-explorer
+# Model Explorer ONNX Adapter
+
+ONNX Adapter for [google-ai-edge/model-explorer](https://github.com/google-ai-edge/model-explorer)
 
 ## Installation
 
