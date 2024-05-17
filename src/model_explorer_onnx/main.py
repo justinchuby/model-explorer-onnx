@@ -178,6 +178,8 @@ def add_node_attrs(onnx_node: ir.Node, node: graph_builder.GraphNode):
         if isinstance(attr, ir.Attr):
             if attr.type == ir.AttributeType.TENSOR:
                 attr_value = display_tensor(attr.value)
+            elif onnx_node.op_type == "Cast" and attr.name == "to":
+                attr_value = str(ir.DataType(attr.value))
             else:
                 attr_value = str(attr.value)
             node.attrs.append(graph_builder.KeyValue(key=attr.name, value=attr_value))
