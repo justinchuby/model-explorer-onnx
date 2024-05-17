@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Literal, Mapping, Sequence
-import model_explorer
-from model_explorer import graph_builder
-import onnx
-from onnxscript import ir
 import logging
+from typing import Any, Literal, Sequence
+
+import model_explorer
+import onnx
+from model_explorer import graph_builder
+from onnxscript import ir
 
 logger = logging.getLogger(__name__)
 
