@@ -62,7 +62,10 @@ def get_initializer_node_name(value: ir.Value) -> str:
 
 
 def get_function_graph_name(identifier: ir.OperatorIdentifier) -> str:
-    return f"[function]{identifier[0]}::{identifier[1]}::{identifier[2]}"
+    name = f"[function]{identifier[0]}::{identifier[1]}"
+    if identifier[2]:
+        name += f"::{identifier[2]}"
+    return name
 
 
 def add_inputs_metadata(onnx_node: ir.Node, node: graph_builder.GraphNode):
