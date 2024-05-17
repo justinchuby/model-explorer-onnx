@@ -61,6 +61,10 @@ def get_initializer_node_name(value: ir.Value) -> str:
     return f"[initializer]{value.name}"
 
 
+def get_function_graph_name(identifier: ir.OperatorIdentifier) -> str:
+    return f"[function]{identifier[0]}::{identifier[1]}::{identifier[2]}"
+
+
 def add_inputs_metadata(onnx_node: ir.Node, node: graph_builder.GraphNode):
     for i, input_value in enumerate(onnx_node.inputs):
         metadata = graph_builder.MetadataItem(id=str(i), attrs=[])
@@ -156,7 +160,10 @@ def create_op_label(domain: str, op_type: str) -> str:
 
 
 def create_node(
-    onnx_node: ir.Node, graph_inputs: set[ir.Value], namespace: str = ""
+    onnx_node: ir.Node,
+    graph_inputs: set[ir.Value],
+    namespace: str,
+    all_function_ids: set[ir.OperatorIdentifier],
 ) -> graph_builder.GraphNode | None:
     if onnx_node.name is None:
         logger.warning("Node does not have a name. Skipping node %s.", onnx_node)
@@ -175,6 +182,8 @@ def create_node(
     add_node_attrs(onnx_node, node)
     add_inputs_metadata(onnx_node, node)
     add_outputs_metadata(onnx_node, node)
+    if onnx_node.op_identifier() in all_function_ids:
+        node.subgraphIds.append(get_function_graph_name(onnx_node.op_identifier()))
     return node
 
 
@@ -268,17 +277,28 @@ def add_initializers(
         graph.nodes.append(node)
 
 
-def create_graph(onnx_graph: ir.Graph | ir.Function) -> graph_builder.Graph | None:
-    if onnx_graph.name is None:
+def create_graph(
+    onnx_graph: ir.Graph | ir.Function, all_function_ids: set[ir.OperatorIdentifier]
+) -> graph_builder.Graph | None:
+    if isinstance(onnx_graph, ir.Function):
+        graph_name = get_function_graph_name(onnx_graph.identifier())
+    elif onnx_graph.name is None:
         logger.warning("Graph does not have a name. skipping graph: %s", onnx_graph)
         return None
-    graph = graph_builder.Graph(id=onnx_graph.name or "graph", nodes=[])
+    else:
+        graph_name = onnx_graph.name
+    graph = graph_builder.Graph(id=graph_name, nodes=[])
     graph_inputs = set(onnx_graph.inputs)
     all_nodes = {}
     add_graph_io(graph, onnx_graph.inputs, type="Input", all_nodes=all_nodes)
 
     for onnx_node in onnx_graph:
-        node = create_node(onnx_node, graph_inputs, namespace=onnx_graph.name)  # type: ignore
+        node = create_node(
+            onnx_node,
+            graph_inputs, # type: ignore
+            namespace=graph_name,
+            all_function_ids=all_function_ids,
+        )  # type: ignore
         if node is None:
             continue
         graph.nodes.append(node)
@@ -289,7 +309,7 @@ def create_graph(onnx_graph: ir.Graph | ir.Function) -> graph_builder.Graph | No
         add_initializers(
             graph,
             list(onnx_graph.initializers.values()),
-            onnx_graph.name,
+            graph_name,
             all_nodes=all_nodes,
         )
 
@@ -329,15 +349,15 @@ class ONNXAdapter(model_explorer.Adapter):
 
         # Convert to ONNX IR
         model = ir.serde.deserialize_model(onnx_model)
-        main_graph = create_graph(model.graph)
+        all_function_ids = set(model.functions)
         graphs = []
-        main_graph = create_graph(model.graph)
+        # TODO: Better support subgraphs in nodes
+        main_graph = create_graph(model.graph, all_function_ids)
         assert main_graph is not None
         graphs.append(main_graph)
 
-        # TODO: Better support functions and subgraphs
         for function in model.functions.values():
-            function_graph = create_graph(function)
+            function_graph = create_graph(function, all_function_ids)
             assert function_graph is not None
             graphs.append(function_graph)
         return {"graphs": graphs}
