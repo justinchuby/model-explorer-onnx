@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from typing import Any, Literal, Mapping, Sequence
 import model_explorer
 from model_explorer import graph_builder
 import onnx
@@ -69,7 +69,7 @@ def add_node_attrs(onnx_node: ir.Node, node: graph_builder.GraphNode):
 def add_incoming_edges(
     onnx_node: ir.Node,
     node: graph_builder.GraphNode,
-    graph_inputs: Mapping[ir.Value, int],
+    graph_inputs: set[ir.Value],
 ):
     for target_input_id, input_value in enumerate(onnx_node.inputs):
         if input_value is None:
@@ -79,27 +79,31 @@ def add_incoming_edges(
             node.incomingEdges.append(
                 graph_builder.IncomingEdge(
                     sourceNodeId=input_value.name,  # type: ignore
-                    sourceNodeOutputId=str(graph_inputs[input_value]),
+                    sourceNodeOutputId="0",
                     targetNodeInputId=str(target_input_id),
                 )
             )
             continue
         input_node = input_value.producer()
         if input_node is None:
-            logger.warning(
-                "Input value %s does not have a producer. Skipping incoming edge.",
+            logger.debug(
+                "Input value %s does not have a producer. Treating as initializer.",
                 input_value,
             )
-            continue
-        if not input_node.name:
+            source_node_id = input_value.name
+            source_node_output_id = "0"
+        elif not input_node.name:
             logger.debug(
                 "Node %s does not have a name. Skipping incoming edge.", input_node
             )
             continue
+        else:
+            source_node_id = input_node.name
+            source_node_output_id = str(input_value.index())
         node.incomingEdges.append(
             graph_builder.IncomingEdge(
-                sourceNodeId=input_node.name,
-                sourceNodeOutputId=str(input_value.index()),
+                sourceNodeId=source_node_id,
+                sourceNodeOutputId=source_node_output_id,
                 targetNodeInputId=str(target_input_id),
             )
         )
@@ -112,7 +116,7 @@ def create_op_label(domain: str, op_type: str) -> str:
 
 
 def create_node(
-    onnx_node: ir.Node, graph_inputs: Mapping[ir.Value, int], namespace: str = ""
+    onnx_node: ir.Node, graph_inputs: set[ir.Value], namespace: str = ""
 ) -> graph_builder.GraphNode | None:
     if onnx_node.name is None:
         logger.warning("Node does not have a name. Skipping node %s.", onnx_node)
@@ -134,7 +138,11 @@ def create_node(
     return node
 
 
-def add_graph_io(graph: graph_builder.Graph, input_or_outputs: Sequence[ir.Value]):
+def add_graph_io(
+    graph: graph_builder.Graph,
+    input_or_outputs: Sequence[ir.Value],
+    type: Literal["Input", "Output"],
+):
     for value in input_or_outputs:
         node = graph_builder.GraphNode(
             id=value.name,  # type: ignore
@@ -149,7 +157,7 @@ def add_graph_io(graph: graph_builder.Graph, input_or_outputs: Sequence[ir.Value
                     targetNodeInputId="0",
                 )
             )
-
+        node.attrs.append(graph_builder.KeyValue(key="type", value=type))
         graph.nodes.append(node)
 
 
@@ -182,7 +190,9 @@ def add_initializers(
         )
         # tensor_shape is a special key that is used to display the type and shape of the tensor
         metadata.attrs.append(
-            graph_builder.KeyValue(key="tensor_shape", value=f"{initializer.const_value.dtype}{shape_text}")
+            graph_builder.KeyValue(
+                key="tensor_shape", value=f"{initializer.const_value.dtype}{shape_text}"
+            )
         )
         metadata.attrs.append(
             graph_builder.KeyValue(
@@ -198,19 +208,17 @@ def create_graph(onnx_graph: ir.Graph | ir.Function) -> graph_builder.Graph | No
         logger.warning("Graph does not have a name. skipping graph: %s", onnx_graph)
         return None
     graph = graph_builder.Graph(id=onnx_graph.name or "graph", nodes=[])
-    graph_inputs: dict[ir.Value, int] = {
-        input_value: i for i, input_value in enumerate(onnx_graph.inputs)
-    }
+    graph_inputs = set(onnx_graph.inputs)
     for onnx_node in onnx_graph:
         node = create_node(onnx_node, graph_inputs, namespace=onnx_graph.name)
         if node is None:
             continue
         graph.nodes.append(node)
-    add_graph_io(graph, onnx_graph.inputs)
+    add_graph_io(graph, onnx_graph.inputs, type="Input")
     # Add initializers
     if isinstance(onnx_graph, ir.Graph):
         add_initializers(graph, list(onnx_graph.initializers.values()), onnx_graph.name)
-    add_graph_io(graph, onnx_graph.outputs)
+    add_graph_io(graph, onnx_graph.outputs, type="Output")
     return graph
 
 
