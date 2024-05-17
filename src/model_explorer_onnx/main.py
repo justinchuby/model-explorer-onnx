@@ -162,8 +162,10 @@ def add_outputs_metadata(
             )
         )
         if schema is not None:
+            output_index = output.index()
+            assert output_index is not None
             if (
-                param_name := get_node_output_schema_name(schema, output.index())
+                param_name := get_node_output_schema_name(schema, output_index)
             ) is not None:
                 metadata.attrs.append(
                     graph_builder.KeyValue(key="param_name", value=param_name)
