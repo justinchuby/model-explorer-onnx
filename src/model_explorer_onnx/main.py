@@ -292,6 +292,8 @@ def create_graph(onnx_graph: ir.Graph | ir.Function) -> graph_builder.Graph | No
             onnx_graph.name,
             all_nodes=all_nodes,
         )
+
+    # Add outputs
     add_graph_io(graph, onnx_graph.outputs, type="Output", all_nodes=all_nodes)
     return graph
 
