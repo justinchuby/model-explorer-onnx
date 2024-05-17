@@ -52,7 +52,7 @@ def add_inputs_metadata(onnx_node: ir.Node, node: graph_builder.GraphNode):
 def add_outputs_metadata(onnx_node: ir.Node, node: graph_builder.GraphNode):
     for output in onnx_node.outputs:
         metadata = graph_builder.MetadataItem(id=str(output.index()), attrs=[])
-        type_str = str(output.type)
+        type_str = str(output.type or "?")
         shape_text = str(output.shape) if output.shape is not None else "[?]"
 
         metadata.attrs.append(
