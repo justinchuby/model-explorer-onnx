@@ -53,6 +53,10 @@ def format_tensor_shape(value: ir.Value | ir.TensorProtocol) -> str:
     return f"{value.dtype or '?'}{format_shape(value.shape)}"
 
 
+def get_graph_io_node_name(value: ir.Value) -> str:
+    return f"io:{value.name}"
+
+
 def add_inputs_metadata(onnx_node: ir.Node, node: graph_builder.GraphNode):
     for i, input_value in enumerate(onnx_node.inputs):
         metadata = graph_builder.MetadataItem(id=str(i), attrs=[])
@@ -114,7 +118,7 @@ def add_incoming_edges(
             # The input is a graph input. Create an input edge.
             node.incomingEdges.append(
                 graph_builder.IncomingEdge(
-                    sourceNodeId=input_value.name,  # type: ignore
+                    sourceNodeId=get_graph_io_node_name(input_value),
                     sourceNodeOutputId="0",
                     targetNodeInputId=str(target_input_id),
                 )
@@ -183,7 +187,7 @@ def add_graph_io(
 ):
     for value in input_or_outputs:
         node = graph_builder.GraphNode(
-            id=value.name,  # type: ignore
+            id=get_graph_io_node_name(value),
             label=value.name,  # type: ignore
         )
         producer = value.producer()
@@ -206,6 +210,7 @@ def add_graph_io(
                     key="tensor_shape", value=format_tensor_shape(value)
                 )
             )
+            node.outputsMetadata.append(metadata)
         node.attrs.append(graph_builder.KeyValue(key="type", value=type))
         graph.nodes.append(node)
         # Record nodes for quick lookup
