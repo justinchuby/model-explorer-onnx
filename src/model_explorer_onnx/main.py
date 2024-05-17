@@ -223,9 +223,10 @@ def add_initializers(
     all_nodes: dict[str, graph_builder.GraphNode],
 ):
     for initializer in initializers:
-        if initializer.name in all_nodes:
+        initializer_node_name = get_initializer_node_name(initializer)
+        if initializer_node_name in all_nodes:
             # The initializer is also a graph input. Fill in the missing metadata.
-            node = all_nodes[initializer.name]
+            node = all_nodes[initializer_node_name]
             metadata = node.outputsMetadata[0]
             metadata.attrs.append(
                 graph_builder.KeyValue(
@@ -234,7 +235,7 @@ def add_initializers(
             )
             continue
         node = graph_builder.GraphNode(
-            id=get_initializer_node_name(initializer),
+            id=initializer_node_name,
             label=initializer.name,  # type: ignore
             namespace=namespace,
         )
