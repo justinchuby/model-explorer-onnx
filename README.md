@@ -1,5 +1,7 @@
 # Model Explorer ONNX Adapter
 
+[![PyPI - Version](https://img.shields.io/pypi/v/model-explorer-onnx.svg)](https://pypi.org/project/model-explorer-onnx)
+
 ONNX Adapter for [google-ai-edge/model-explorer](https://github.com/google-ai-edge/model-explorer)
 
 ## Installation
