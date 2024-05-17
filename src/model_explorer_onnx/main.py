@@ -84,7 +84,7 @@ def get_node_input_param_name(
             == onnx.defs.OpSchema.FormalParameterOption.Variadic
         ):
             # The last input is variadic. Return the name of the last input.
-            return f"{schema.inputs[-1].name}_{input_index}"
+            return schema.inputs[-1].name
         return None
     except Exception as e:
         logger.warning("Failed to get input schema name: %s", e)
@@ -106,7 +106,7 @@ def get_node_output_param_name(
             == onnx.defs.OpSchema.FormalParameterOption.Variadic
         ):
             # The last input is variadic. Return the name of the last input.
-            return f"{schema.outputs[-1].name}_{output_index}"
+            return schema.outputs[-1].name
         return None
     except Exception as e:
         logger.warning("Failed to get output schema name: %s", e)
