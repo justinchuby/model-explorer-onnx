@@ -226,6 +226,12 @@ def create_op_label(domain: str, op_type: str) -> str:
     return f"{domain}::{op_type}"
 
 
+def parse_namespace(node_name: str) -> list[str]:
+    """Parse the namespace from the node name if it is in the format of /namespace/node_name."""
+    split = node_name.lstrip("/").rstrip("/").split("/")[0:-1]
+    return [ns or "<anonymous>" for ns in split]
+
+
 def create_node(
     onnx_node: ir.Node,
     graph_inputs: set[ir.Value],
@@ -244,8 +250,7 @@ def create_node(
     """
     assert onnx_node.name, "Bug: Node name is required"
 
-    embedded_namespace = onnx_node.name.lstrip("/").split("/")[0:-1]
-    embedded_namespace = [ns or "<anonymous>" for ns in embedded_namespace]
+    embedded_namespace = parse_namespace(onnx_node.name)
     if embedded_namespace:
         namespace = namespace + "/" + "/".join(embedded_namespace)
     node = graph_builder.GraphNode(
@@ -301,6 +306,9 @@ def add_initializers(
     all_nodes: dict[str, graph_builder.GraphNode],
 ) -> None:
     for initializer in initializers:
+        if not initializer.name:
+            logger.warning("Initializer does not have a name. Skipping: %s", initializer)
+            continue
         initializer_node_name = get_initializer_node_name(initializer)
         if initializer_node_name in all_nodes:
             # The initializer is also a graph input. Fill in the missing metadata.
@@ -308,6 +316,11 @@ def add_initializers(
             metadata = node.outputsMetadata[0]
             set_attr(metadata, "value", display_tensor(initializer.const_value))
             continue
+
+        # Parse the namespace from the initializer name
+        # embedded_namespace = parse_namespace(initializer.name)
+        # if embedded_namespace:
+        #     namespace = namespace + "/" + "/".join(embedded_namespace)
         node = graph_builder.GraphNode(
             id=initializer_node_name,
             label=initializer.name,  # type: ignore
