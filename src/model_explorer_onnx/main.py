@@ -262,9 +262,13 @@ def create_node(
     """
     assert onnx_node.name, "Bug: Node name is required"
 
-    embedded_namespace = parse_namespace(onnx_node.name)
-    if embedded_namespace:
-        namespace = namespace + "/" + "/".join(embedded_namespace)
+    if onnx_node.op_type == "Constant":
+        # Move the constant closer to the user node's namespace
+        namespace = get_constant_namespace(onnx_node.outputs[0], namespace)
+    else:
+        embedded_namespace = parse_namespace(onnx_node.name)
+        if embedded_namespace:
+            namespace = namespace + "/" + "/".join(embedded_namespace)
     node = graph_builder.GraphNode(
         id=onnx_node.name,
         label=create_op_label(onnx_node.domain, onnx_node.op_type),
@@ -312,8 +316,8 @@ def add_graph_io(
         all_nodes[node.id] = node
 
 
-def get_initializer_namespace(initializer: ir.Value, root_namespace: str) -> str:
-    # If the initializer is used by a single node, move it to the same namespace as the node
+def get_constant_namespace(initializer: ir.Value, root_namespace: str) -> str:
+    """Move the constant/initializer closer to the user's namespace."""
     initializer_namespace = root_namespace
     # A single node can have multiple uses of the same value.
     # Here we only count the unique nodes that use the initializer to push the
@@ -323,6 +327,7 @@ def get_initializer_namespace(initializer: ir.Value, root_namespace: str) -> str
         # The initializer is not used by any node. Keep it in the root namespace.
         return initializer_namespace
     if len(user_nodes) == 1:
+        # If the initializer is used by a single node, move it to the same namespace as the node
         user_node = user_nodes[0]
         assert (
             user_node.name
@@ -376,7 +381,7 @@ def add_initializers(
         node = graph_builder.GraphNode(
             id=initializer_node_name,
             label="Initializer",
-            namespace=get_initializer_namespace(initializer, namespace),
+            namespace=get_constant_namespace(initializer, namespace),
         )
         # Add metadata for the output tensor
         if initializer.const_value is None:
@@ -460,7 +465,7 @@ class ONNXAdapter(model_explorer.Adapter):
 
         onnx_model = onnx.load(model_path, load_external_data=False)
         try:
-            onnx_model = onnx.shape_inference.infer_shapes(onnx_model)
+            onnx_model = onnx.shape_inference.infer_shapes(onnx_model, data_prop=True)
         except Exception as e:
             logger.warning(
                 "Failed to infer shapes. Continue with the original model. Error: %s", e
@@ -469,13 +474,23 @@ class ONNXAdapter(model_explorer.Adapter):
         # Load external data after shape inference
         model_filepath = os.path.abspath(model_path)
         base_dir = os.path.dirname(model_filepath)
-        onnx.load_external_data_for_model(onnx_model, base_dir)
+        try:
+            onnx.load_external_data_for_model(onnx_model, base_dir)
+        except Exception as e:
+            logger.warning(
+                "Failed to load external data. Continue with the original model. Error: %s",
+                e,
+            )
 
         # Convert to ONNX IR
         model = ir.serde.deserialize_model(onnx_model)
         all_function_ids = set(model.functions)
         graphs = []
-        opset_version = model.opset_imports.get("", _DEFAULT_OPSET_VERSION)
+        opset_version = model.opset_imports.get("")
+        if opset_version is None:
+            opset_version = model.opset_imports.get("ai.onnx")
+        if opset_version is None:
+            opset_version = _DEFAULT_OPSET_VERSION
         # TODO: Better support subgraphs in nodes
         main_graph = create_graph(
             model.graph, all_function_ids, opset_version=opset_version
