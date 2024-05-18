@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 from typing import Any, Literal, Sequence
 
 import ml_dtypes
@@ -20,7 +19,9 @@ _DEFAULT_OPSET_VERSION = 18
 def display_tensor(tensor: ir.TensorProtocol | None) -> str:
     if tensor is None:
         return "Data not available"
-    if tensor.size < _TENSOR_DISPLAY_LIMIT:
+    if tensor.size < _TENSOR_DISPLAY_LIMIT and not isinstance(
+        tensor, ir.ExternalTensor
+    ):
         try:
             array = tensor.numpy()
             if tensor.dtype == ir.DataType.BFLOAT16:
@@ -463,23 +464,14 @@ class ONNXAdapter(model_explorer.Adapter):
     ) -> model_explorer.ModelExplorerGraphs:
         del settings  # Unused
 
+        # Do not load external data because the model file is copied to a temporary location
+        # and the external data paths are not valid anymore.
         onnx_model = onnx.load(model_path, load_external_data=False)
         try:
             onnx_model = onnx.shape_inference.infer_shapes(onnx_model, data_prop=True)
         except Exception as e:
             logger.warning(
                 "Failed to infer shapes. Continue with the original model. Error: %s", e
-            )
-
-        # Load external data after shape inference
-        model_filepath = os.path.abspath(model_path)
-        base_dir = os.path.dirname(model_filepath)
-        try:
-            onnx.load_external_data_for_model(onnx_model, base_dir)
-        except Exception as e:
-            logger.warning(
-                "Failed to load external data. Continue with the original model. Error: %s",
-                e,
             )
 
         # Convert to ONNX IR
