@@ -214,12 +214,8 @@ def add_incoming_edges(
                 )
                 source_node_id = get_initializer_node_name(input_value)
                 source_node_output_id = "0"
-            elif not input_node.name:
-                logger.debug(
-                    "Node %s does not have a name. Skipping incoming edge.", input_node
-                )
-                continue
             else:
+                assert input_node.name, "Bug: Node name is required"
                 source_node_id = input_node.name
                 source_node_output_id = str(input_value.index())
         assert source_node_id is not None
@@ -254,9 +250,7 @@ def create_node(
         all_function_ids: The set of all function identifiers.
         opset_version: The current ONNX opset version.
     """
-    if onnx_node.name is None:
-        logger.warning("Node does not have a name. Skipping node %s.", onnx_node)
-        return None
+    assert onnx_node.name, "Bug: Node name is required"
 
     embedded_namespace = onnx_node.name.lstrip("/").split("/")[0:-1]
     embedded_namespace = [ns or "<anonymous>" for ns in embedded_namespace]
@@ -383,7 +377,9 @@ def create_graph(
     all_nodes = {}
     add_graph_io(graph, onnx_graph.inputs, type="Input", all_nodes=all_nodes)
 
-    for onnx_node in onnx_graph:
+    for i, onnx_node in enumerate(onnx_graph):
+        if not onnx_node.name:
+            onnx_node.name = f"<node_{i}>"
         node = create_node(
             onnx_node,
             graph_inputs,  # type: ignore
