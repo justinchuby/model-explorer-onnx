@@ -308,6 +308,48 @@ def add_graph_io(
         all_nodes[node.id] = node
 
 
+def get_initializer_namespace(initializer: ir.Value, root_namespace: str) -> str:
+    # If the initializer is used by a single node, move it to the same namespace as the node
+    initializer_namespace = root_namespace
+    # A single node can have multiple uses of the same value.
+    # Here we only count the unique nodes that use the initializer to push the
+    # initializer to the same namespace as much as possible.
+    user_nodes = tuple(set(node for node, _ in initializer.uses()))
+    if not user_nodes:
+        # The initializer is not used by any node. Keep it in the root namespace.
+        return initializer_namespace
+    if len(user_nodes) == 1:
+        user_node = user_nodes[0]
+        assert (
+            user_node.name
+        ), "Bug: Node name is required and should have been assigned"
+        user_node_namespace = parse_namespace(user_node.name)
+        if user_node_namespace:
+            initializer_namespace = (
+                initializer_namespace + "/" + "/".join(user_node_namespace)
+            )
+    else:
+        # If there are multiple user nodes, find the common namespace
+        common_namespace = parse_namespace(user_nodes[0].name)  # type: ignore
+        for user_node in user_nodes:
+            assert (
+                user_node.name
+            ), "Bug: Node name is required and should have been assigned"
+            user_node_namespace = parse_namespace(user_node.name)
+            for i, (name_a, name_b) in enumerate(
+                zip(common_namespace, user_node_namespace)
+            ):
+                if name_a != name_b:
+                    # That's the end of the common namespace
+                    common_namespace = common_namespace[:i]
+                    break
+        if common_namespace:
+            initializer_namespace = (
+                initializer_namespace + "/" + "/".join(common_namespace)
+            )
+    return initializer_namespace
+
+
 def add_initializers(
     graph: graph_builder.Graph,
     initializers: Sequence[ir.Value],
@@ -327,15 +369,10 @@ def add_initializers(
             metadata = node.outputsMetadata[0]
             set_attr(metadata, "value", display_tensor(initializer.const_value))
             continue
-
-        # Parse the namespace from the initializer name
-        # embedded_namespace = parse_namespace(initializer.name)
-        # if embedded_namespace:
-        #     namespace = namespace + "/" + "/".join(embedded_namespace)
         node = graph_builder.GraphNode(
             id=initializer_node_name,
-            label=initializer.name,  # type: ignore
-            namespace=namespace,
+            label="Initializer",
+            namespace=get_initializer_namespace(initializer, namespace),
         )
         # Annotate the initializer node as an initializer
         set_attr(node, "category", "Initializer")
