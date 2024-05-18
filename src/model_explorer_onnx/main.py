@@ -19,25 +19,23 @@ _DEFAULT_OPSET_VERSION = 18
 def display_tensor(tensor: ir.TensorProtocol | None) -> str:
     if tensor is None:
         return "Data not available"
-    if tensor.size < _TENSOR_DISPLAY_LIMIT and not isinstance(
-        tensor, ir.ExternalTensor
-    ):
-        try:
-            array = tensor.numpy()
-            if tensor.dtype == ir.DataType.BFLOAT16:
-                array = array.view(ml_dtypes.bfloat16)
-            elif tensor.dtype == ir.DataType.FLOAT8E4M3FN:
-                array = array.view(ml_dtypes.float8_e4m3fn)
-            elif tensor.dtype == ir.DataType.FLOAT8E4M3FNUZ:
-                array = array.view(ml_dtypes.float8_e4m3fnuz)
-            elif tensor.dtype == ir.DataType.FLOAT8E5M2:
-                array = array.view(ml_dtypes.float8_e5m2)
-            elif tensor.dtype == ir.DataType.FLOAT8E5M2FNUZ:
-                array = array.view(ml_dtypes.float8_e5m2fnuz)
-            return np.array2string(array, separator=",")
-        except Exception as e:
-            logger.warning("Failed to display tensor: %s", e)
-            return str(tensor)
+    if tensor.size > _TENSOR_DISPLAY_LIMIT or isinstance(tensor, ir.ExternalTensor):
+        return str(tensor)
+    try:
+        array = tensor.numpy()
+        if tensor.dtype == ir.DataType.BFLOAT16:
+            array = array.view(ml_dtypes.bfloat16)
+        elif tensor.dtype == ir.DataType.FLOAT8E4M3FN:
+            array = array.view(ml_dtypes.float8_e4m3fn)
+        elif tensor.dtype == ir.DataType.FLOAT8E4M3FNUZ:
+            array = array.view(ml_dtypes.float8_e4m3fnuz)
+        elif tensor.dtype == ir.DataType.FLOAT8E5M2:
+            array = array.view(ml_dtypes.float8_e5m2)
+        elif tensor.dtype == ir.DataType.FLOAT8E5M2FNUZ:
+            array = array.view(ml_dtypes.float8_e5m2fnuz)
+        return np.array2string(array, separator=",")
+    except Exception as e:
+        logger.warning("Failed to display tensor: %s", e)
     return str(tensor)
 
 
