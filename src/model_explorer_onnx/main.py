@@ -24,15 +24,15 @@ def display_tensor(tensor: ir.TensorProtocol | None) -> str:
         try:
             array = tensor.numpy()
             if tensor.dtype == ir.DataType.BFLOAT16:
-                array.astype(ml_dtypes.bfloat16)
+                array = array.view(ml_dtypes.bfloat16)
             elif tensor.dtype == ir.DataType.FLOAT8E4M3FN:
-                array.astype(ml_dtypes.float8_e4m3fn)
+                array = array.view(ml_dtypes.float8_e4m3fn)
             elif tensor.dtype == ir.DataType.FLOAT8E4M3FNUZ:
-                array.astype(ml_dtypes.float8_e4m3fnuz)
+                array = array.view(ml_dtypes.float8_e4m3fnuz)
             elif tensor.dtype == ir.DataType.FLOAT8E5M2:
-                array.astype(ml_dtypes.float8_e5m2)
+                array = array.view(ml_dtypes.float8_e5m2)
             elif tensor.dtype == ir.DataType.FLOAT8E5M2FNUZ:
-                array.astype(ml_dtypes.float8_e5m2fnuz)
+                array = array.view(ml_dtypes.float8_e5m2fnuz)
             return np.array2string(array, separator=",")
         except Exception as e:
             logger.warning("Failed to display tensor: %s", e)
