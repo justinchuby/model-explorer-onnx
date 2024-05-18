@@ -311,15 +311,42 @@ def add_graph_io(
 def get_initializer_namespace(initializer: ir.Value, root_namespace: str) -> str:
     # If the initializer is used by a single node, move it to the same namespace as the node
     initializer_namespace = root_namespace
-    uses = tuple(initializer.uses())
-    if len(uses) == 1:
-        user_node = uses[0][0]
+    # A single node can have multiple uses of the same value.
+    # Here we only count the unique nodes that use the initializer to push the
+    # initializer to the same namespace as much as possible.
+    user_nodes = tuple(set(node for node, _ in initializer.uses()))
+    if not user_nodes:
+        # The initializer is not used by any node. Keep it in the root namespace.
+        return initializer_namespace
+    if len(user_nodes) == 1:
+        user_node = user_nodes[0]
         assert (
             user_node.name
         ), "Bug: Node name is required and should have been assigned"
         user_node_namespace = parse_namespace(user_node.name)
         if user_node_namespace:
-            initializer_namespace = initializer_namespace + "/" + "/".join(user_node_namespace)
+            initializer_namespace = (
+                initializer_namespace + "/" + "/".join(user_node_namespace)
+            )
+    else:
+        # If there are multiple user nodes, find the common namespace
+        common_namespace = parse_namespace(user_nodes[0].name)  # type: ignore
+        for user_node in user_nodes:
+            assert (
+                user_node.name
+            ), "Bug: Node name is required and should have been assigned"
+            user_node_namespace = parse_namespace(user_node.name)
+            for i, (name_a, name_b) in enumerate(
+                zip(common_namespace, user_node_namespace)
+            ):
+                if name_a != name_b:
+                    # That's the end of the common namespace
+                    common_namespace = common_namespace[:i]
+                    break
+        if common_namespace:
+            initializer_namespace = (
+                initializer_namespace + "/" + "/".join(common_namespace)
+            )
     return initializer_namespace
 
 
