@@ -279,13 +279,13 @@ def create_node(
 def add_graph_io(
     graph: graph_builder.Graph,
     input_or_outputs: Sequence[ir.Value],
-    type: Literal["Input", "Output"],
+    type_: Literal["Input", "Output"],
     all_nodes: dict[str, graph_builder.GraphNode],
 ) -> None:
-    for value in input_or_outputs:
+    for i, value in enumerate(input_or_outputs):
         node = graph_builder.GraphNode(
             id=get_graph_io_node_name(value),
-            label=value.name,  # type: ignore
+            label=type_,
         )
         producer = value.producer()
         if producer is not None:
@@ -297,12 +297,14 @@ def add_graph_io(
                     targetNodeInputId="0",
                 )
             )
-        if type == "Input":
+        if type_ == "Input":
             metadata = graph_builder.MetadataItem(id="0", attrs=[])
             set_attr(metadata, "__tensor_tag", value.name or "")
             set_type_shape_metadata(metadata, value)
             node.outputsMetadata.append(metadata)
-        set_attr(node, "category", type)
+        set_attr(node, "category", type_)
+        set_attr(node, "name", value.name or "")
+        set_attr(node, "index", str(i))
         graph.nodes.append(node)
         # Record nodes for quick lookup
         all_nodes[node.id] = node
@@ -387,6 +389,9 @@ def add_initializers(
         set_attr(metadata, "__tensor_tag", initializer.name or "")
         set_type_shape_metadata(metadata, initializer.const_value)
         set_attr(metadata, "value", display_tensor(initializer.const_value))
+        # Note if the initializer is unused
+        if not initializer.uses():
+            set_attr(metadata, "unused", "True")
         node.outputsMetadata.append(metadata)
         graph.nodes.append(node)
 
@@ -406,7 +411,7 @@ def create_graph(
     graph = graph_builder.Graph(id=graph_name, nodes=[])
     graph_inputs = set(onnx_graph.inputs)
     all_nodes = {}
-    add_graph_io(graph, onnx_graph.inputs, type="Input", all_nodes=all_nodes)
+    add_graph_io(graph, onnx_graph.inputs, type_="Input", all_nodes=all_nodes)
 
     for i, onnx_node in enumerate(onnx_graph):
         if not onnx_node.name:
@@ -433,7 +438,7 @@ def create_graph(
         )
 
     # Add outputs
-    add_graph_io(graph, onnx_graph.outputs, type="Output", all_nodes=all_nodes)
+    add_graph_io(graph, onnx_graph.outputs, type_="Output", all_nodes=all_nodes)
     return graph
 
 
