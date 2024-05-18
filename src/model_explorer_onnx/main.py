@@ -143,7 +143,7 @@ def add_inputs_metadata(
             set_attr(metadata, "__tensor_tag", input_value.name or "None")
             set_type_shape_metadata(metadata, input_value)
             for prop_key, prop_value in input_value.metadata_props.items():
-                set_attr(metadata, prop_key, prop_value)
+                set_attr(metadata, f"[metadata] {prop_key}", prop_value)
         if schema is not None:
             if (param_name := get_node_input_param_name(schema, i)) is not None:
                 set_attr(metadata, "param_name", param_name)
@@ -164,7 +164,7 @@ def add_outputs_metadata(
         set_attr(metadata, "__tensor_tag", output_value.name or "None")
         set_type_shape_metadata(metadata, output_value)
         for prop_key, prop_value in output_value.metadata_props.items():
-            set_attr(metadata, prop_key, prop_value)
+            set_attr(metadata, f"[metadata] {prop_key}", prop_value)
         if schema is not None:
             output_index = output_value.index()
             assert output_index is not None
