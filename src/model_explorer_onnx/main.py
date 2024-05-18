@@ -112,9 +112,23 @@ def get_node_output_param_name(
         logger.warning("Failed to get output schema name: %s", e)
 
 
+def set_attr(
+    obj: graph_builder.GraphNode | graph_builder.MetadataItem, key: str, value: str
+) -> None:
+    """Set an attribute on a GraphNode or MetadataItem."""
+    obj.attrs.append(graph_builder.KeyValue(key=key, value=value))
+
+
+def set_type_shape_metadata(
+    metadata: graph_builder.MetadataItem, value: ir.Value | ir.TensorProtocol
+) -> None:
+    # tensor_shape is a special key that is used to display the type and shape of the tensor
+    set_attr(metadata, "tensor_shape", format_tensor_shape(value))
+
+
 def add_inputs_metadata(
     onnx_node: ir.Node, node: graph_builder.GraphNode, opset_version: int
-):
+) -> None:
     if onnx.defs.has(onnx_node.op_type, max_inclusive_version=opset_version):
         schema = onnx.defs.get_schema(
             onnx_node.op_type, max_inclusive_version=opset_version
@@ -124,22 +138,13 @@ def add_inputs_metadata(
     for i, input_value in enumerate(onnx_node.inputs):
         metadata = graph_builder.MetadataItem(id=str(i), attrs=[])
         if input_value is None:
-            metadata.attrs.append(graph_builder.KeyValue(key="__tensor_tag", value=""))
+            set_attr(metadata, "__tensor_tag", "None")
         else:
-            metadata.attrs.append(
-                graph_builder.KeyValue(key="__tensor_tag", value=input_value.name or "")
-            )
-            # tensor_shape is a special key that is used to display the type and shape of the tensor
-            metadata.attrs.append(
-                graph_builder.KeyValue(
-                    key="tensor_shape", value=format_tensor_shape(input_value)
-                )
-            )
+            set_attr(metadata, "__tensor_tag", input_value.name or "None")
+            set_type_shape_metadata(metadata, input_value)
         if schema is not None:
             if (param_name := get_node_input_param_name(schema, i)) is not None:
-                metadata.attrs.append(
-                    graph_builder.KeyValue(key="param_name", value=param_name)
-                )
+                set_attr(metadata, "param_name", param_name)
         node.inputsMetadata.append(metadata)
 
 
@@ -154,28 +159,19 @@ def add_outputs_metadata(
         schema = None
     for output in onnx_node.outputs:
         metadata = graph_builder.MetadataItem(id=str(output.index()), attrs=[])
-        metadata.attrs.append(
-            graph_builder.KeyValue(key="__tensor_tag", value=output.name or "")
-        )
-        # tensor_shape is a special key that is used to display the type and shape of the tensor
-        metadata.attrs.append(
-            graph_builder.KeyValue(
-                key="tensor_shape", value=format_tensor_shape(output)
-            )
-        )
+        set_attr(metadata, "__tensor_tag", output.name or "None")
+        set_type_shape_metadata(metadata, output)
         if schema is not None:
             output_index = output.index()
             assert output_index is not None
             if (
                 param_name := get_node_output_param_name(schema, output_index)
             ) is not None:
-                metadata.attrs.append(
-                    graph_builder.KeyValue(key="param_name", value=param_name)
-                )
+                set_attr(metadata, "param_name", param_name)
         node.outputsMetadata.append(metadata)
 
 
-def add_node_attrs(onnx_node: ir.Node, node: graph_builder.GraphNode):
+def add_node_attrs(onnx_node: ir.Node, node: graph_builder.GraphNode) -> None:
     for attr in onnx_node.attributes.values():
         if isinstance(attr, ir.Attr):
             if attr.type == ir.AttributeType.TENSOR:
@@ -184,20 +180,16 @@ def add_node_attrs(onnx_node: ir.Node, node: graph_builder.GraphNode):
                 attr_value = str(ir.DataType(attr.value))
             else:
                 attr_value = str(attr.value)
-            node.attrs.append(graph_builder.KeyValue(key=attr.name, value=attr_value))
+            set_attr(node, attr.name, attr_value)
         elif isinstance(attr, ir.RefAttr):
-            node.attrs.append(
-                graph_builder.KeyValue(
-                    key=attr.name, value=f"Ref({attr.ref_attr_name})"
-                )
-            )
+            set_attr(node, attr.name, f"@{attr.ref_attr_name}")
 
 
 def add_incoming_edges(
     onnx_node: ir.Node,
     node: graph_builder.GraphNode,
     graph_inputs: set[ir.Value],
-):
+) -> None:
     for target_input_id, input_value in enumerate(onnx_node.inputs):
         if input_value is None:
             continue
@@ -275,7 +267,7 @@ def add_graph_io(
     input_or_outputs: Sequence[ir.Value],
     type: Literal["Input", "Output"],
     all_nodes: dict[str, graph_builder.GraphNode],
-):
+) -> None:
     for value in input_or_outputs:
         node = graph_builder.GraphNode(
             id=get_graph_io_node_name(value),
@@ -293,17 +285,10 @@ def add_graph_io(
             )
         if type == "Input":
             metadata = graph_builder.MetadataItem(id="0", attrs=[])
-            metadata.attrs.append(
-                graph_builder.KeyValue(key="__tensor_tag", value=value.name or "")
-            )
-            # tensor_shape is a special key that is used to display the type and shape of the tensor
-            metadata.attrs.append(
-                graph_builder.KeyValue(
-                    key="tensor_shape", value=format_tensor_shape(value)
-                )
-            )
+            set_attr(metadata, "__tensor_tag", value.name or "")
+            set_type_shape_metadata(metadata, value)
             node.outputsMetadata.append(metadata)
-        node.attrs.append(graph_builder.KeyValue(key="type", value=type))
+        set_attr(node, "category", type)
         graph.nodes.append(node)
         # Record nodes for quick lookup
         all_nodes[node.id] = node
@@ -314,18 +299,14 @@ def add_initializers(
     initializers: Sequence[ir.Value],
     namespace: str,
     all_nodes: dict[str, graph_builder.GraphNode],
-):
+) -> None:
     for initializer in initializers:
         initializer_node_name = get_initializer_node_name(initializer)
         if initializer_node_name in all_nodes:
             # The initializer is also a graph input. Fill in the missing metadata.
             node = all_nodes[initializer_node_name]
             metadata = node.outputsMetadata[0]
-            metadata.attrs.append(
-                graph_builder.KeyValue(
-                    key="value", value=display_tensor(initializer.const_value)
-                )
-            )
+            set_attr(metadata, "value", display_tensor(initializer.const_value))
             continue
         node = graph_builder.GraphNode(
             id=initializer_node_name,
@@ -333,7 +314,7 @@ def add_initializers(
             namespace=namespace,
         )
         # Annotate the initializer node as an initializer
-        node.attrs.append(graph_builder.KeyValue(key="type", value="Initializer"))
+        set_attr(node, "category", "Initializer")
         # Add metadata for the output tensor
         if initializer.const_value is None:
             logger.warning(
@@ -342,21 +323,9 @@ def add_initializers(
             graph.nodes.append(node)
             continue
         metadata = graph_builder.MetadataItem(id="0", attrs=[])
-        metadata.attrs.append(
-            graph_builder.KeyValue(key="__tensor_tag", value=initializer.name or "")
-        )
-        # tensor_shape is a special key that is used to display the type and shape of the tensor
-        metadata.attrs.append(
-            graph_builder.KeyValue(
-                key="tensor_shape",
-                value=f"{initializer.const_value.dtype}{format_shape(initializer.const_value.shape)}",
-            )
-        )
-        metadata.attrs.append(
-            graph_builder.KeyValue(
-                key="value", value=display_tensor(initializer.const_value)
-            )
-        )
+        set_attr(metadata, "__tensor_tag", initializer.name or "")
+        set_type_shape_metadata(metadata, initializer.const_value)
+        set_attr(metadata, "value", display_tensor(initializer.const_value))
         node.outputsMetadata.append(metadata)
         graph.nodes.append(node)
 
