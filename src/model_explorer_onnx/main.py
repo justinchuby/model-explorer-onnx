@@ -305,7 +305,6 @@ def add_graph_io(
             set_attr(metadata, "__tensor_tag", value.name or "")
             set_type_shape_metadata(metadata, value)
             node.outputsMetadata.append(metadata)
-        set_attr(node, "category", type_)
         set_attr(node, "name", value.name or "")
         set_attr(node, "index", str(i))
         graph.nodes.append(node)
@@ -379,8 +378,6 @@ def add_initializers(
             label="Initializer",
             namespace=get_initializer_namespace(initializer, namespace),
         )
-        # Annotate the initializer node as an initializer
-        set_attr(node, "category", "Initializer")
         # Add metadata for the output tensor
         if initializer.const_value is None:
             logger.warning(
