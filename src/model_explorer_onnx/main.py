@@ -282,7 +282,8 @@ def add_graph_io(
             label=value.name,  # type: ignore
         )
         producer = value.producer()
-        if producer is not None and producer.name is not None:
+        if producer is not None:
+            assert producer.name, "Bug: Node name is required"
             node.incomingEdges.append(
                 graph_builder.IncomingEdge(
                     sourceNodeId=producer.name,
