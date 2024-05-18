@@ -308,6 +308,21 @@ def add_graph_io(
         all_nodes[node.id] = node
 
 
+def get_initializer_namespace(initializer: ir.Value, root_namespace: str) -> str:
+    # If the initializer is used by a single node, move it to the same namespace as the node
+    initializer_namespace = root_namespace
+    uses = tuple(initializer.uses())
+    if len(uses) == 1:
+        user_node = uses[0][0]
+        assert (
+            user_node.name
+        ), "Bug: Node name is required and should have been assigned"
+        user_node_namespace = parse_namespace(user_node.name)
+        if user_node_namespace:
+            initializer_namespace = initializer_namespace + "/" + "/".join(user_node_namespace)
+    return initializer_namespace
+
+
 def add_initializers(
     graph: graph_builder.Graph,
     initializers: Sequence[ir.Value],
@@ -327,15 +342,10 @@ def add_initializers(
             metadata = node.outputsMetadata[0]
             set_attr(metadata, "value", display_tensor(initializer.const_value))
             continue
-
-        # Parse the namespace from the initializer name
-        # embedded_namespace = parse_namespace(initializer.name)
-        # if embedded_namespace:
-        #     namespace = namespace + "/" + "/".join(embedded_namespace)
         node = graph_builder.GraphNode(
             id=initializer_node_name,
-            label=initializer.name,  # type: ignore
-            namespace=namespace,
+            label="Initializer",
+            namespace=get_initializer_namespace(initializer, namespace),
         )
         # Annotate the initializer node as an initializer
         set_attr(node, "category", "Initializer")
