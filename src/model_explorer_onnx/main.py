@@ -165,6 +165,9 @@ def add_outputs_metadata(
         set_type_shape_metadata(metadata, output_value)
         for prop_key, prop_value in output_value.metadata_props.items():
             set_attr(metadata, f"[metadata] {prop_key}", prop_value)
+        if len(output_value.uses()) == 0 and not output_value.is_graph_output():
+            # The output is unused. Add a flag to indicate that.
+            set_attr(metadata, "unused", "True")
         if schema is not None:
             output_index = output_value.index()
             assert output_index is not None
