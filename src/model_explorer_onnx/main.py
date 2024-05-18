@@ -55,11 +55,11 @@ def format_tensor_shape(value: ir.Value | ir.TensorProtocol) -> str:
 
 
 def get_graph_io_node_name(value: ir.Value) -> str:
-    return f"[io]{value.name}"
+    return f"[io] {value.name}"
 
 
 def get_initializer_node_name(value: ir.Value) -> str:
-    return f"[initializer]{value.name}"
+    return f"[initializer] {value.name}"
 
 
 def get_function_graph_name(identifier: ir.OperatorIdentifier) -> str:
@@ -142,6 +142,8 @@ def add_inputs_metadata(
         else:
             set_attr(metadata, "__tensor_tag", input_value.name or "None")
             set_type_shape_metadata(metadata, input_value)
+            for prop_key, prop_value in input_value.metadata_props.items():
+                set_attr(metadata, f"[metadata] {prop_key}", prop_value)
         if schema is not None:
             if (param_name := get_node_input_param_name(schema, i)) is not None:
                 set_attr(metadata, "param_name", param_name)
@@ -157,12 +159,14 @@ def add_outputs_metadata(
         )
     else:
         schema = None
-    for output in onnx_node.outputs:
-        metadata = graph_builder.MetadataItem(id=str(output.index()), attrs=[])
-        set_attr(metadata, "__tensor_tag", output.name or "None")
-        set_type_shape_metadata(metadata, output)
+    for output_value in onnx_node.outputs:
+        metadata = graph_builder.MetadataItem(id=str(output_value.index()), attrs=[])
+        set_attr(metadata, "__tensor_tag", output_value.name or "None")
+        set_type_shape_metadata(metadata, output_value)
+        for prop_key, prop_value in output_value.metadata_props.items():
+            set_attr(metadata, f"[metadata] {prop_key}", prop_value)
         if schema is not None:
-            output_index = output.index()
+            output_index = output_value.index()
             assert output_index is not None
             if (
                 param_name := get_node_output_param_name(schema, output_index)
@@ -183,6 +187,11 @@ def add_node_attrs(onnx_node: ir.Node, node: graph_builder.GraphNode) -> None:
             set_attr(node, attr.name, attr_value)
         elif isinstance(attr, ir.RefAttr):
             set_attr(node, attr.name, f"@{attr.ref_attr_name}")
+
+    if onnx_node.doc_string:
+        set_attr(node, "[metadata] doc_string", onnx_node.doc_string)
+    for prop_key, prop_value in onnx_node.metadata_props.items():
+        set_attr(node, f"[metadata] {prop_key}", str(prop_value))
 
 
 def add_incoming_edges(
@@ -307,7 +316,9 @@ def add_initializers(
 ) -> None:
     for initializer in initializers:
         if not initializer.name:
-            logger.warning("Initializer does not have a name. Skipping: %s", initializer)
+            logger.warning(
+                "Initializer does not have a name. Skipping: %s", initializer
+            )
             continue
         initializer_node_name = get_initializer_node_name(initializer)
         if initializer_node_name in all_nodes:
