@@ -44,8 +44,8 @@ def format_shape(shape: ir.ShapeProtocol | None) -> str:
     return str(shape) if shape is not None else "[?]"
 
 
-def format_type(type: ir.TypeProtocol | None) -> str:
-    return str(type) if type is not None else "?"
+def format_type(type_: ir.TypeProtocol | None) -> str:
+    return str(type_) if type_ is not None else "?"
 
 
 def format_tensor_shape(value: ir.Value | ir.TensorProtocol) -> str:
