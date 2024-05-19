@@ -8,6 +8,7 @@ import model_explorer
 import numpy as np
 import onnx
 from model_explorer import graph_builder
+from model_explorer_onnx import utils
 from onnxscript import ir
 
 logger = logging.getLogger(__name__)
@@ -59,13 +60,6 @@ def get_graph_io_node_name(value: ir.Value) -> str:
 
 def get_initializer_node_name(value: ir.Value) -> str:
     return f"[initializer] {value.name}"
-
-
-def get_function_graph_name(identifier: ir.OperatorIdentifier) -> str:
-    name = f"[function]{identifier[0]}::{identifier[1]}"
-    if identifier[2]:
-        name += f"::{identifier[2]}"
-    return name
 
 
 def get_node_input_param_name(
@@ -278,7 +272,9 @@ def create_node(
     add_inputs_metadata(onnx_node, node, opset_version=opset_version)
     add_outputs_metadata(onnx_node, node, opset_version=opset_version)
     if onnx_node.op_identifier() in all_function_ids:
-        node.subgraphIds.append(get_function_graph_name(onnx_node.op_identifier()))
+        node.subgraphIds.append(
+            utils.get_function_graph_name(onnx_node.op_identifier())
+        )
     return node
 
 
@@ -406,7 +402,7 @@ def create_graph(
     opset_version: int,
 ) -> graph_builder.Graph | None:
     if isinstance(onnx_graph, ir.Function):
-        graph_name = get_function_graph_name(onnx_graph.identifier())
+        graph_name = utils.get_function_graph_name(onnx_graph.identifier())
     elif onnx_graph.name is None:
         logger.warning("Graph does not have a name. skipping graph: %s", onnx_graph)
         return None
