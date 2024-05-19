@@ -9,10 +9,10 @@ description = "Adapter for ai-edge-model-explorer to support ONNX models"
 authors = [{ name = "Justin Chu", email = "justinchu@microsoft.com" }]
 readme = "README.md"
 requires-python = ">=3.8"
-license = { file = "LICENSE" }
+license = {text = "MIT License"}
+keywords = ["onnx", "model-explorer", "visualization"]
 classifiers = [
-  "Development Status :: 3 - Alpha",
-  "Environment :: Console",
+  "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "Operating System :: POSIX",
   "Operating System :: MacOS :: MacOS X",
@@ -32,6 +32,9 @@ dependencies = [
   "onnxscript>=0.1.0.dev20240517",
   "ml_dtypes",
 ]
+
+[project.scripts]
+onnxvis = "model_explorer_onnx.bin.onnxvis:main"
 
 [project.urls]
 Repository = "https://github.com/justinchuby/model-explorer-onnx"

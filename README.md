@@ -14,6 +14,12 @@ pip install --upgrade model-explorer-onnx
 
 ```bash
 model-explorer --extensions=model_explorer_onnx
+
+# Or as a shortcut
+onnxvis
+
+# Supply model path
+onnxvis model.onnx
 ```
 
 ## Screenshots
@@ -29,4 +35,3 @@ model-explorer --extensions=model_explorer_onnx
 <img width="1293" alt="image" src="https://github.com/justinchuby/model-explorer-onnx/assets/11205048/fbf2fa05-bd29-4938-93d1-709690d9f9c6">
 
 <img width="1301" alt="image" src="https://github.com/justinchuby/model-explorer-onnx/assets/11205048/a68f7ecd-1fa1-4eac-9e1f-8e9a5bbf9fe3">
-
