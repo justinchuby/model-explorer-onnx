@@ -10,6 +10,7 @@ authors = [{ name = "Justin Chu", email = "justinchu@microsoft.com" }]
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT License"}
+keywords = ["onnx", "model-explorer", "visualization"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console",
