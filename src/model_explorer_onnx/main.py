@@ -483,8 +483,11 @@ class ONNXAdapter(model_explorer.Adapter):
             opset_version = _DEFAULT_OPSET_VERSION
         # TODO: Better support subgraphs in nodes
         if model.graph.name is None:
-            model.graph.name = "main_graph"
-            logger.warning("Main graph does not have a name. Set name to 'main_graph'")
+            model.graph.name = "<main>"
+            logger.warning(
+                "Main graph of ONNX file '%s' does not have a name. Set name to '<main>'",
+                model_path,
+            )
         main_graph = create_graph(
             model.graph, all_function_ids, opset_version=opset_version
         )
