@@ -7,14 +7,17 @@ import sys
 
 def main():
     # Run model explorer
-    subprocess.run(
-        [
-            "model-explorer",
-            "--extensions",
-            "model_explorer_onnx",
-            *sys.argv[1:],
-        ]
-    )
+    try:
+        subprocess.run(
+            [
+                "model-explorer",
+                "--extensions",
+                "model_explorer_onnx",
+                *sys.argv[1:],
+            ]
+        )
+    except KeyboardInterrupt:
+        pass
 
 
 if __name__ == "__main__":
