@@ -1,6 +1,6 @@
 """Assign unique names to subgraphs so that they can be uniquely identified."""
 
-from model_explorer_onnx import utils
+from model_explorer_onnx import _utils
 from onnxscript import ir
 
 
@@ -22,7 +22,7 @@ def assign_subgraph_names(model: ir.Model) -> ir.Model:
         model.graph.name = "<main>"
     _assign_subgraph_names(model.graph, model.graph.name)
     for function in model.functions.values():
-        function_graph_name = utils.get_function_graph_name(function.identifier())
+        function_graph_name = _utils.get_function_graph_name(function.identifier())
         _assign_subgraph_names(function, function_graph_name)
 
     return model

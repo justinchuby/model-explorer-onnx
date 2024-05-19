@@ -8,7 +8,7 @@ import model_explorer
 import numpy as np
 import onnx
 from model_explorer import graph_builder
-from model_explorer_onnx import utils
+from model_explorer_onnx import _utils
 from onnxscript import ir
 
 logger = logging.getLogger(__name__)
@@ -273,7 +273,7 @@ def create_node(
     add_outputs_metadata(onnx_node, node, opset_version=opset_version)
     if onnx_node.op_identifier() in all_function_ids:
         node.subgraphIds.append(
-            utils.get_function_graph_name(onnx_node.op_identifier())
+            _utils.get_function_graph_name(onnx_node.op_identifier())
         )
     return node
 
@@ -402,7 +402,7 @@ def create_graph(
     opset_version: int,
 ) -> graph_builder.Graph | None:
     if isinstance(onnx_graph, ir.Function):
-        graph_name = utils.get_function_graph_name(onnx_graph.identifier())
+        graph_name = _utils.get_function_graph_name(onnx_graph.identifier())
     elif onnx_graph.name is None:
         logger.warning("Graph does not have a name. skipping graph: %s", onnx_graph)
         return None
