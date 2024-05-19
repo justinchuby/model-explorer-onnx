@@ -33,5 +33,8 @@ dependencies = [
   "ml_dtypes",
 ]
 
+[project.scripts]
+onnxvis = "model_explorer_onnx.bin.onnxvis:main"
+
 [project.urls]
 Repository = "https://github.com/justinchuby/model-explorer-onnx"
