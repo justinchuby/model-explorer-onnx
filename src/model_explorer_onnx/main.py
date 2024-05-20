@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any, Literal, Sequence
 
@@ -20,28 +21,24 @@ class Settings:
         self.const_element_count_limit: int = const_element_count_limit
 
 
-def display_tensor(tensor: ir.TensorProtocol | None, settings: Settings) -> str:
+def _tensor_to_numpy(tensor: ir.TensorProtocol) -> np.ndarray:
+    array = tensor.numpy()
+    if tensor.dtype == ir.DataType.BFLOAT16:
+        array = array.view(ml_dtypes.bfloat16)
+    elif tensor.dtype == ir.DataType.FLOAT8E4M3FN:
+        array = array.view(ml_dtypes.float8_e4m3fn)
+    elif tensor.dtype == ir.DataType.FLOAT8E4M3FNUZ:
+        array = array.view(ml_dtypes.float8_e4m3fnuz)
+    elif tensor.dtype == ir.DataType.FLOAT8E5M2:
+        array = array.view(ml_dtypes.float8_e5m2)
+    elif tensor.dtype == ir.DataType.FLOAT8E5M2FNUZ:
+        array = array.view(ml_dtypes.float8_e5m2fnuz)
+    return array
+
+
+def display_tensor_repr(tensor: ir.TensorProtocol | None) -> str:
     if tensor is None:
         return "Data not available"
-    if tensor.size > settings.const_element_count_limit or isinstance(
-        tensor, ir.ExternalTensor
-    ):
-        return str(tensor)
-    try:
-        array = tensor.numpy()
-        if tensor.dtype == ir.DataType.BFLOAT16:
-            array = array.view(ml_dtypes.bfloat16)
-        elif tensor.dtype == ir.DataType.FLOAT8E4M3FN:
-            array = array.view(ml_dtypes.float8_e4m3fn)
-        elif tensor.dtype == ir.DataType.FLOAT8E4M3FNUZ:
-            array = array.view(ml_dtypes.float8_e4m3fnuz)
-        elif tensor.dtype == ir.DataType.FLOAT8E5M2:
-            array = array.view(ml_dtypes.float8_e5m2)
-        elif tensor.dtype == ir.DataType.FLOAT8E5M2FNUZ:
-            array = array.view(ml_dtypes.float8_e5m2fnuz)
-        return np.array2string(array, separator=",")
-    except Exception as e:
-        logger.warning("Failed to display tensor: %s", e)
     return str(tensor)
 
 
@@ -55,6 +52,22 @@ def can_display_tensor_json(
     if isinstance(tensor, ir.ExternalTensor):
         return False
     return True
+
+
+def display_tensor_json(tensor: ir.TensorProtocol | None, settings: Settings) -> str:
+    try:
+        array = _tensor_to_numpy(tensor)
+        size_limit = settings.const_element_count_limit
+        if size_limit < 0 or size_limit > array.size:
+            # Use separators=(',', ':') to remove spaces
+            return json.dumps(array.tolist(), separators=(",", ":"))
+        # Show the first `size_limit` elements if the tensor is too large
+        return json.dumps(
+            (array.flatten())[:size_limit].tolist(), separators=(",", ":")
+        )
+    except Exception as e:
+        logger.warning("Failed to display tensor (%s): %s", tensor, e)
+    return ""
 
 
 def format_shape(shape: ir.ShapeProtocol | None) -> str:
@@ -201,7 +214,13 @@ def add_node_attrs(
     for attr in onnx_node.attributes.values():
         if isinstance(attr, ir.Attr):
             if attr.type == ir.AttributeType.TENSOR:
-                attr_value = display_tensor(attr.value, settings=settings)
+                if can_display_tensor_json(attr.value, settings=settings):
+                    set_attr(
+                        node,
+                        "__value",
+                        display_tensor_json(attr.value, settings=settings),
+                    )
+                attr_value = display_tensor_repr(attr.value)
             elif onnx_node.op_type == "Cast" and attr.name == "to":
                 attr_value = str(ir.DataType(attr.value))
             else:
@@ -399,16 +418,11 @@ def add_initializers(
             metadata = node.outputsMetadata[0]
             if can_display_tensor_json(initializer.const_value, settings=settings):
                 set_attr(
-                    metadata,
+                    node,
                     "__value",
-                    display_tensor(initializer.const_value, settings=settings),
+                    display_tensor_json(initializer.const_value, settings=settings),
                 )
-            else:
-                set_attr(
-                    metadata,
-                    "value",
-                    display_tensor(initializer.const_value, settings=settings),
-                )
+            set_attr(metadata, "value", display_tensor_repr(initializer.const_value))
             continue
         node = graph_builder.GraphNode(
             id=initializer_node_name,
@@ -427,16 +441,11 @@ def add_initializers(
         set_type_shape_metadata(metadata, initializer.const_value)
         if can_display_tensor_json(initializer.const_value, settings=settings):
             set_attr(
-                metadata,
+                node,
                 "__value",
-                display_tensor(initializer.const_value, settings=settings),
+                display_tensor_json(initializer.const_value, settings=settings),
             )
-        else:
-            set_attr(
-                metadata,
-                "value",
-                display_tensor(initializer.const_value, settings=settings),
-            )
+        set_attr(metadata, "value", display_tensor_repr(initializer.const_value))
         # Note if the initializer is unused
         if not initializer.uses():
             set_attr(metadata, "unused", "True")
