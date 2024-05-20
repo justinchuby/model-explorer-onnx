@@ -58,7 +58,7 @@ def display_tensor_json(tensor: ir.TensorProtocol | None, settings: Settings) ->
     try:
         array = _tensor_to_numpy(tensor)
         size_limit = settings.const_element_count_limit
-        if size_limit < 0 or size_limit > array.size:
+        if size_limit < 0 or size_limit >= array.size:
             # Use separators=(',', ':') to remove spaces
             return json.dumps(array.tolist(), separators=(",", ":"))
         # Show the first `size_limit` elements if the tensor is too large
