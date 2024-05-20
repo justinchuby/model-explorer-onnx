@@ -12,14 +12,20 @@ from onnxscript import ir
 
 logger = logging.getLogger(__name__)
 
-_TENSOR_DISPLAY_LIMIT = 1024
 _DEFAULT_OPSET_VERSION = 18
 
 
-def display_tensor(tensor: ir.TensorProtocol | None) -> str:
+class Settings:
+    def __init__(self, const_element_count_limit: int = 1024, **_: Any):
+        self.const_element_count_limit: int = const_element_count_limit
+
+
+def display_tensor(tensor: ir.TensorProtocol | None, settings: Settings) -> str:
     if tensor is None:
         return "Data not available"
-    if tensor.size > _TENSOR_DISPLAY_LIMIT or isinstance(tensor, ir.ExternalTensor):
+    if tensor.size > settings.const_element_count_limit or isinstance(
+        tensor, ir.ExternalTensor
+    ):
         return str(tensor)
     try:
         array = tensor.numpy()
@@ -37,6 +43,18 @@ def display_tensor(tensor: ir.TensorProtocol | None) -> str:
     except Exception as e:
         logger.warning("Failed to display tensor: %s", e)
     return str(tensor)
+
+
+def can_display_tensor_json(
+    tensor: ir.TensorProtocol | None, settings: Settings
+) -> bool:
+    if tensor is None:
+        return False
+    if tensor.size > settings.const_element_count_limit:
+        return False
+    if isinstance(tensor, ir.ExternalTensor):
+        return False
+    return True
 
 
 def format_shape(shape: ir.ShapeProtocol | None) -> str:
@@ -177,11 +195,13 @@ def add_outputs_metadata(
         node.outputsMetadata.append(metadata)
 
 
-def add_node_attrs(onnx_node: ir.Node, node: graph_builder.GraphNode) -> None:
+def add_node_attrs(
+    onnx_node: ir.Node, node: graph_builder.GraphNode, settings: Settings
+) -> None:
     for attr in onnx_node.attributes.values():
         if isinstance(attr, ir.Attr):
             if attr.type == ir.AttributeType.TENSOR:
-                attr_value = display_tensor(attr.value)
+                attr_value = display_tensor(attr.value, settings=settings)
             elif onnx_node.op_type == "Cast" and attr.name == "to":
                 attr_value = str(ir.DataType(attr.value))
             else:
@@ -249,6 +269,7 @@ def create_node(
     namespace: str,
     all_function_ids: set[ir.OperatorIdentifier],
     opset_version: int,
+    settings: Settings,
 ) -> graph_builder.GraphNode | None:
     """Create a GraphNode from an ONNX node.
 
@@ -274,7 +295,7 @@ def create_node(
         namespace=namespace,
     )
     add_incoming_edges(onnx_node, node, graph_inputs)
-    add_node_attrs(onnx_node, node)
+    add_node_attrs(onnx_node, node, settings=settings)
     add_inputs_metadata(onnx_node, node, opset_version=opset_version)
     add_outputs_metadata(onnx_node, node, opset_version=opset_version)
     if onnx_node.op_identifier() in all_function_ids:
@@ -363,6 +384,7 @@ def add_initializers(
     initializers: Sequence[ir.Value],
     namespace: str,
     all_nodes: dict[str, graph_builder.GraphNode],
+    settings: Settings,
 ) -> None:
     for initializer in initializers:
         if not initializer.name:
@@ -375,7 +397,18 @@ def add_initializers(
             # The initializer is also a graph input. Fill in the missing metadata.
             node = all_nodes[initializer_node_name]
             metadata = node.outputsMetadata[0]
-            set_attr(metadata, "value", display_tensor(initializer.const_value))
+            if can_display_tensor_json(initializer.const_value, settings=settings):
+                set_attr(
+                    metadata,
+                    "__value",
+                    display_tensor(initializer.const_value, settings=settings),
+                )
+            else:
+                set_attr(
+                    metadata,
+                    "value",
+                    display_tensor(initializer.const_value, settings=settings),
+                )
             continue
         node = graph_builder.GraphNode(
             id=initializer_node_name,
@@ -392,7 +425,18 @@ def add_initializers(
         metadata = graph_builder.MetadataItem(id="0", attrs=[])
         set_attr(metadata, "__tensor_tag", initializer.name or "")
         set_type_shape_metadata(metadata, initializer.const_value)
-        set_attr(metadata, "value", display_tensor(initializer.const_value))
+        if can_display_tensor_json(initializer.const_value, settings=settings):
+            set_attr(
+                metadata,
+                "__value",
+                display_tensor(initializer.const_value, settings=settings),
+            )
+        else:
+            set_attr(
+                metadata,
+                "value",
+                display_tensor(initializer.const_value, settings=settings),
+            )
         # Note if the initializer is unused
         if not initializer.uses():
             set_attr(metadata, "unused", "True")
@@ -404,6 +448,7 @@ def create_graph(
     onnx_graph: ir.Graph | ir.Function,
     all_function_ids: set[ir.OperatorIdentifier],
     opset_version: int,
+    settings: Settings,
 ) -> graph_builder.Graph | None:
     if isinstance(onnx_graph, ir.Function):
         graph_name = get_function_graph_name(onnx_graph.identifier())
@@ -426,6 +471,7 @@ def create_graph(
             namespace=graph_name,
             all_function_ids=all_function_ids,
             opset_version=opset_version,
+            settings=settings,
         )  # type: ignore
         if node is None:
             continue
@@ -439,6 +485,7 @@ def create_graph(
             list(onnx_graph.initializers.values()),
             graph_name,
             all_nodes=all_nodes,
+            settings=settings,
         )
 
     # Add outputs
@@ -460,7 +507,7 @@ class ONNXAdapter(model_explorer.Adapter):
     def convert(
         self, model_path: str, settings: dict[str, Any]
     ) -> model_explorer.ModelExplorerGraphs:
-        del settings  # Unused
+        parsed_settings = Settings(**settings)
 
         # Do not load external data because the model file is copied to a temporary location
         # and the external data paths are not valid anymore.
@@ -489,14 +536,20 @@ class ONNXAdapter(model_explorer.Adapter):
                 model_path,
             )
         main_graph = create_graph(
-            model.graph, all_function_ids, opset_version=opset_version
+            model.graph,
+            all_function_ids,
+            opset_version=opset_version,
+            settings=parsed_settings,
         )
         assert main_graph is not None, "Bug: Main graph should not be None"
         graphs.append(main_graph)
 
         for function in model.functions.values():
             function_graph = create_graph(
-                function, all_function_ids, opset_version=opset_version
+                function,
+                all_function_ids,
+                opset_version=opset_version,
+                settings=parsed_settings,
             )
             assert function_graph is not None
             graphs.append(function_graph)
