@@ -221,6 +221,22 @@ def add_node_attrs(
                         display_tensor_json(attr.value, settings=settings),
                     )
                 attr_value = display_tensor_repr(attr.value)
+            elif onnx_node.op_type == "Constant" and attr.name in {
+                "value_float",
+                "value_int",
+                "value_string",
+                "value_floats",
+                "value_ints",
+                "value_strings",
+            }:
+                set_attr(
+                    node,
+                    "__value",
+                    display_tensor_json(
+                        ir.Tensor(np.array(attr.value)), settings=settings
+                    ),
+                )
+                attr_value = str(attr.value)
             elif onnx_node.op_type == "Cast" and attr.name == "to":
                 attr_value = str(ir.DataType(attr.value))
             else:
