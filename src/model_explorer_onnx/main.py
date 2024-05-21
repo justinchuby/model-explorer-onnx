@@ -54,9 +54,14 @@ def can_display_tensor_json(
     return True
 
 
-def display_tensor_json(tensor: ir.TensorProtocol | None, settings: Settings) -> str:
+def display_tensor_json(
+    tensor: ir.TensorProtocol | np.ndarray, settings: Settings
+) -> str:
     try:
-        array = _tensor_to_numpy(tensor)
+        if isinstance(tensor, np.ndarray):
+            array = tensor
+        else:
+            array = _tensor_to_numpy(tensor)
         size_limit = settings.const_element_count_limit
         if size_limit < 0 or size_limit >= array.size:
             # Use separators=(',', ':') to remove spaces
@@ -215,12 +220,27 @@ def add_node_attrs(
         if isinstance(attr, ir.Attr):
             if attr.type == ir.AttributeType.TENSOR:
                 if can_display_tensor_json(attr.value, settings=settings):
+                    assert attr.value is not None
                     set_attr(
                         node,
                         "__value",
                         display_tensor_json(attr.value, settings=settings),
                     )
                 attr_value = display_tensor_repr(attr.value)
+            elif onnx_node.op_type == "Constant" and attr.name in {
+                "value_float",
+                "value_int",
+                "value_string",
+                "value_floats",
+                "value_ints",
+                "value_strings",
+            }:
+                set_attr(
+                    node,
+                    "__value",
+                    display_tensor_json(np.array(attr.value), settings=settings),
+                )
+                attr_value = str(attr.value)
             elif onnx_node.op_type == "Cast" and attr.name == "to":
                 attr_value = str(ir.DataType(attr.value))
             else:
@@ -417,6 +437,7 @@ def add_initializers(
             node = all_nodes[initializer_node_name]
             metadata = node.outputsMetadata[0]
             if can_display_tensor_json(initializer.const_value, settings=settings):
+                assert initializer.const_value is not None
                 set_attr(
                     node,
                     "__value",
@@ -440,6 +461,7 @@ def add_initializers(
         set_attr(metadata, "__tensor_tag", initializer.name or "")
         set_type_shape_metadata(metadata, initializer.const_value)
         if can_display_tensor_json(initializer.const_value, settings=settings):
+            assert initializer.const_value is not None
             set_attr(
                 node,
                 "__value",

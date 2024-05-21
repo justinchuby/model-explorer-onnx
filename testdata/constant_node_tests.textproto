@@ -1,0 +1,107 @@
+ir_version: 8
+graph {
+  node {
+    output: "val_0"
+    name: "node_Constant_0"
+    op_type: "Constant"
+    attribute {
+      name: "value_int"
+      i: 42
+      type: INT
+    }
+  }
+  node {
+    input: "val_0"
+    output: "val_1"
+    name: "node_Identity_1"
+    op_type: "Identity"
+  }
+  node {
+    output: "val_2"
+    name: "node_Constant_2"
+    op_type: "Constant"
+    attribute {
+      name: "value_ints"
+      ints: 0
+      ints: 42
+      type: INTS
+    }
+  }
+  node {
+    input: "val_2"
+    output: "val_3"
+    name: "node_Identity_3"
+    op_type: "Identity"
+  }
+  node {
+    output: "val_4"
+    name: "node_Constant_4"
+    op_type: "Constant"
+    attribute {
+      name: "value_float"
+      f: 42.0
+      type: FLOAT
+    }
+  }
+  node {
+    input: "val_4"
+    output: "val_5"
+    name: "node_Identity_5"
+    op_type: "Identity"
+  }
+  node {
+    output: "val_6"
+    name: "node_Constant_6"
+    op_type: "Constant"
+    attribute {
+      name: "value_floats"
+      floats: 0.0
+      floats: 3.1415927
+      type: FLOATS
+    }
+  }
+  node {
+    input: "val_6"
+    output: "val_7"
+    name: "node_Identity_7"
+    op_type: "Identity"
+  }
+  node {
+    output: "val_8"
+    name: "node_Constant_8"
+    op_type: "Constant"
+    attribute {
+      name: "value_string"
+      s: "hello"
+      type: STRING
+    }
+  }
+  node {
+    input: "val_8"
+    output: "val_9"
+    name: "node_Identity_9"
+    op_type: "Identity"
+  }
+  node {
+    output: "val_10"
+    name: "node_Constant_10"
+    op_type: "Constant"
+    attribute {
+      name: "value_strings"
+      strings: "hello"
+      strings: "world"
+      type: STRINGS
+    }
+  }
+  node {
+    input: "val_10"
+    output: "val_11"
+    name: "node_Identity_11"
+    op_type: "Identity"
+  }
+  name: "constant_node_tests"
+}
+opset_import {
+  domain: ""
+  version: 20
+}
