@@ -219,14 +219,20 @@ def add_node_attrs(
     for attr in onnx_node.attributes.values():
         if isinstance(attr, ir.Attr):
             if attr.type == ir.AttributeType.TENSOR:
-                if can_display_tensor_json(attr.value, settings=settings):
-                    assert attr.value is not None
-                    set_attr(
-                        node,
-                        "__value",
-                        display_tensor_json(attr.value, settings=settings),
-                    )
-                attr_value = display_tensor_repr(attr.value)
+                if onnx_node.op_type in {"Constant", "Initializer"}:
+                    if can_display_tensor_json(attr.value, settings=settings):
+                        assert attr.value is not None
+                        set_attr(
+                            node,
+                            "__value",
+                            display_tensor_json(attr.value, settings=settings),
+                        )
+                    attr_value = display_tensor_repr(attr.value)
+                else:
+                    if can_display_tensor_json(attr.value, settings=settings):
+                        attr_value = display_tensor_json(attr.value, settings=settings)
+                    else:
+                        attr_value = display_tensor_repr(attr.value)
             elif onnx_node.op_type == "Constant" and attr.name in {
                 "value_float",
                 "value_int",
