@@ -1,6 +1,7 @@
+import json
 from collections import defaultdict
 from typing import Sequence
-import json
+
 
 def rgb(r: int, g: int, b: int) -> str:
     return "#%02x%02x%02x" % (r, g, b)
@@ -89,7 +90,7 @@ NETRON_CATEGORIES = {
 }
 
 
-def color_rule(names: Sequence[str], color: str):
+def color_rule(names: Sequence[str], color: str, text_color: str = "#ffffff"):
     return {
         "queries": [
             {"type": "node_type", "nodeType": "op_nodes"},
@@ -112,7 +113,15 @@ def construct_theme():
         color_rule(ops, NETRON_THEME[category.lower()])
         for category, ops in category_op_map.items()
     ]
+    rules.append(
+        color_rule(
+            ["Input", "Output", "Constant"],
+            "#4b4b4b",
+            text_color="#000000",
+        )
+    )
     return rules
+
 
 def main():
     rules = construct_theme()
