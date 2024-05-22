@@ -99,7 +99,7 @@ def color_rule(names: Sequence[str], color: str, text_color: str = "#ffffff"):
         "nodeType": "op_nodes",
         "styles": {
             "node_bg_color": {"id": "node_bg_color", "value": color},
-            "node_text_color": {"id": "node_text_color", "value": "#ffffff"},
+            "node_text_color": {"id": "node_text_color", "value": text_color},
         },
         "version": "v2",
     }
@@ -115,9 +115,22 @@ def construct_theme():
     ]
     rules.append(
         color_rule(
-            ["Input", "Output", "Constant"],
+            ["Initializer", "Constant"],
             "#4b4b4b",
+        )
+    )
+    rules.append(
+        color_rule(
+            ["Input", "Output"],
+            "#404040",
             text_color="#000000",
+        )
+    )
+    rules.append(
+        color_rule(
+            [".*"],
+            "#000000",
+            text_color="#ffffff",
         )
     )
     return rules
