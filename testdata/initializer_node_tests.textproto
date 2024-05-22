@@ -1,0 +1,95 @@
+ir_version: 8
+graph {
+  node {
+    input: "input"
+    output: "output"
+    name: "node_Identity_0"
+    op_type: "Identity"
+    doc_string: "An identity node 1"
+  }
+  node {
+    input: "input_initialized"
+    output: "output_initialized"
+    name: "node_Identity_1"
+    op_type: "Identity"
+    doc_string: "An identity node 2"
+  }
+  node {
+    input: "normal_initializer"
+    output: "val_0"
+    name: "node_Identity_2"
+    op_type: "Identity"
+    doc_string: "An identity node 3"
+  }
+  name: "initializer_node_tests"
+  initializer {
+    dims: 3
+    data_type: 1
+    name: "input_initialized"
+    raw_data: "\000\000\000\000\000\000\200?\000\000\000@"
+  }
+  initializer {
+    dims: 1
+    data_type: 7
+    name: "normal_initializer"
+    raw_data: "*\000\000\000\000\000\000\000"
+  }
+  input {
+    name: "input"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 42
+          }
+        }
+      }
+    }
+    doc_string: "An input"
+  }
+  input {
+    name: "input_initialized"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 3
+          }
+        }
+      }
+    }
+    doc_string: "An initialized input"
+  }
+  output {
+    name: "output"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 42
+          }
+        }
+      }
+    }
+  }
+  output {
+    name: "output_initialized"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 3
+          }
+        }
+      }
+    }
+  }
+}
+opset_import {
+  domain: ""
+  version: 20
+}
