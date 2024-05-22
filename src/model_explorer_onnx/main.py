@@ -79,8 +79,8 @@ def format_shape(shape: ir.ShapeProtocol | None) -> str:
     return str(shape) if shape is not None else "[?]"
 
 
-def format_type(type: ir.TypeProtocol | None) -> str:
-    return str(type) if type is not None else "?"
+def format_type(type_: ir.TypeProtocol | None) -> str:
+    return str(type_) if type_ is not None else "?"
 
 
 def format_tensor_shape(value: ir.Value | ir.TensorProtocol) -> str:
@@ -89,9 +89,9 @@ def format_tensor_shape(value: ir.Value | ir.TensorProtocol) -> str:
     return f"{value.dtype or '?'}{format_shape(value.shape)}"
 
 
-def get_edge_node_name(value: ir.Value) -> str:
-    """Create name for nodes that are created from edges (nodes like Input, for visualization only)."""
-    return f"[edge] {value.name}"
+def get_value_node_name(value: ir.Value) -> str:
+    """Create name for node that is created from a value, that is for visualization only. E.g. Input."""
+    return f"[value] {value.name}"
 
 
 def get_function_graph_name(identifier: ir.OperatorIdentifier) -> str:
@@ -268,7 +268,7 @@ def add_incoming_edges(
             continue
         if input_value in graph_inputs:
             # The input is a graph input. Create an input edge.
-            source_node_id = get_edge_node_name(input_value)
+            source_node_id = get_value_node_name(input_value)
             source_node_output_id = "0"
         else:
             input_node = input_value.producer()
@@ -277,7 +277,7 @@ def add_incoming_edges(
                     "Input value %s does not have a producer. Treating as initializer.",
                     input_value,
                 )
-                source_node_id = get_edge_node_name(input_value)
+                source_node_id = get_value_node_name(input_value)
                 source_node_output_id = "0"
             else:
                 assert input_node.name, "Bug: Node name is required"
@@ -353,7 +353,7 @@ def add_graph_io(
 ) -> None:
     for i, value in enumerate(input_or_outputs):
         node = graph_builder.GraphNode(
-            id=get_edge_node_name(value),
+            id=get_value_node_name(value),
             label=type_,
         )
         producer = value.producer()
@@ -434,7 +434,7 @@ def add_initializers(
                 "Initializer does not have a name. Skipping: %s", initializer
             )
             continue
-        initializer_node_name = get_edge_node_name(initializer)
+        initializer_node_name = get_value_node_name(initializer)
         if initializer_node_name in all_nodes:
             # The initializer is also a graph input.
             # Convert it into an InitializedInput and fill in the missing metadata
