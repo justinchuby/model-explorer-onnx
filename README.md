@@ -22,6 +22,10 @@ onnxvis
 onnxvis model.onnx
 ```
 
+## Notes on representation
+
+Input/output/initializers in ONNX are values (edges), not nodes. A node is displayed here for visualization. Inputs that are initialized by initializers are displayed as `InitializedInput`. You may add "InitializedInput" to `Hide op nodes with labels below (comma separated)` settings option to hide these nodes. You may access settings by clicking on the gear icon on the top right corner on the model selection page.
+
 ## Screenshots
 
 <img width="1294" alt="image" src="https://github.com/justinchuby/model-explorer-onnx/assets/11205048/ed7e1eee-a693-48bd-811d-b384f784ef9b">
