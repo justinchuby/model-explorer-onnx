@@ -359,6 +359,13 @@ def add_graph_io(
             id=get_graph_io_node_name(value),
             label=type_,
         )
+        set_attr(
+            node,
+            "explanation",
+            f"This is a graph {type_.lower()}. ONNX {type_.lower()}s are values (edges), not nodes. "
+            f"A node is displayed here for visualization.",
+        )
+
         producer = value.producer()
         if producer is not None:
             assert producer.name, "Bug: Node name is required"
@@ -437,11 +444,19 @@ def add_initializers(
                 "Initializer does not have a name. Skipping: %s", initializer
             )
             continue
-        initializer_node_name = get_initializer_node_name(initializer)
-        if initializer_node_name in all_nodes:
-            # The initializer is also a graph input. Fill in the missing metadata.
-            node = all_nodes[initializer_node_name]
-            metadata = node.outputsMetadata[0]
+        input_node_name = get_graph_io_node_name(initializer)
+        if input_node_name in all_nodes:
+            # The initializer is also a graph input.
+            # Convert it into an InitializedInput and fill in the missing metadata
+            node = all_nodes[input_node_name]
+            node.label = "InitializedInput"
+            set_attr(
+                node,
+                "explanation",
+                "This is a graph input that is initialized by an initializer. "
+                "ONNX inputs are values (edges), not nodes. A node is displayed here for visualization.",
+            )
+            # Display the constant value
             if can_display_tensor_json(initializer.const_value, settings=settings):
                 assert initializer.const_value is not None
                 set_attr(
@@ -449,8 +464,11 @@ def add_initializers(
                     "__value",
                     display_tensor_json(initializer.const_value, settings=settings),
                 )
+            # Set output metadata
+            metadata = node.outputsMetadata[0]
             set_attr(metadata, "value", display_tensor_repr(initializer.const_value))
             continue
+        initializer_node_name = get_initializer_node_name(initializer)
         node = graph_builder.GraphNode(
             id=initializer_node_name,
             label="Initializer",
