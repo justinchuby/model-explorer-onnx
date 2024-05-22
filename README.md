@@ -22,6 +22,9 @@ onnxvis
 onnxvis model.onnx
 ```
 
+> [!NOTE]
+> Model Explorer only supports WSL on Windows.
+
 Read more on the [Model Explorer User Guide](https://github.com/google-ai-edge/model-explorer/wiki/2.-User-Guide).
 
 ## Notes on representation
