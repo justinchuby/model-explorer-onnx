@@ -277,7 +277,7 @@
       },
       {
         "type": "regex",
-        "queryRegex": "Input|Output|Constant",
+        "queryRegex": "Initializer|Constant",
         "matchTypes": [
           "title"
         ]
@@ -287,7 +287,61 @@
     "styles": {
       "node_bg_color": {
         "id": "node_bg_color",
-        "value": "#4b4b4b"
+        "value": "#ffffff"
+      },
+      "node_text_color": {
+        "id": "node_text_color",
+        "value": "#000000"
+      }
+    },
+    "version": "v2"
+  },
+  {
+    "queries": [
+      {
+        "type": "node_type",
+        "nodeType": "op_nodes"
+      },
+      {
+        "type": "regex",
+        "queryRegex": "Input|Output",
+        "matchTypes": [
+          "title"
+        ]
+      }
+    ],
+    "nodeType": "op_nodes",
+    "styles": {
+      "node_bg_color": {
+        "id": "node_bg_color",
+        "value": "#eeeeee"
+      },
+      "node_text_color": {
+        "id": "node_text_color",
+        "value": "#000000"
+      }
+    },
+    "version": "v2"
+  },
+  {
+    "queries": [
+      {
+        "type": "node_type",
+        "nodeType": "op_nodes"
+      },
+      {
+        "type": "regex",
+        "queryRegex": ".*",
+        "matchTypes": [
+          "title"
+        ]
+      }
+    ],
+    "nodeType": "op_nodes",
+    "styles": {
+      "node_bg_color": {
+        "id": "node_bg_color",
+        "value": "#000000"
       },
       "node_text_color": {
         "id": "node_text_color",

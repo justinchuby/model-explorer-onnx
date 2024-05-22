@@ -7,6 +7,7 @@ def rgb(r: int, g: int, b: int) -> str:
     return "#%02x%02x%02x" % (r, g, b)
 
 
+# https://github.com/lutzroeder/netron/blob/0408dc7fb856f1e97cc23d8d91000b1f5bd487ac/source/grapher.css#L130
 NETRON_THEME = {
     "layer": rgb(51, 85, 136),
     "activation": rgb(75, 27, 22),
@@ -116,13 +117,14 @@ def construct_theme():
     rules.append(
         color_rule(
             ["Initializer", "Constant"],
-            "#4b4b4b",
+            "#ffffff",
+            text_color="#000000",
         )
     )
     rules.append(
         color_rule(
             ["Input", "Output"],
-            "#404040",
+            rgb(238, 238, 238),
             text_color="#000000",
         )
     )
