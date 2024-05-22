@@ -1,0 +1,353 @@
+[
+  {
+    "queries": [
+      {
+        "type": "node_type",
+        "nodeType": "op_nodes"
+      },
+      {
+        "type": "regex",
+        "queryRegex": "Attention|DecoderAttention|DecoderMaskedMultiHeadAttention|DecoderMaskedSelfAttention|GroupQueryAttention|LongformerAttention|MultiHeadAttention|PackedAttention|PackedMultiHeadAttention|QAttention|QOrderedAttention|QOrderedLongformerAttention|SparseAttention",
+        "matchTypes": [
+          "title"
+        ]
+      }
+    ],
+    "nodeType": "op_nodes",
+    "styles": {
+      "node_bg_color": {
+        "id": "node_bg_color",
+        "value": "#643200"
+      },
+      "node_text_color": {
+        "id": "node_text_color",
+        "value": "#ffffff"
+      }
+    },
+    "version": "v2"
+  },
+  {
+    "queries": [
+      {
+        "type": "node_type",
+        "nodeType": "op_nodes"
+      },
+      {
+        "type": "regex",
+        "queryRegex": "AveragePool|GlobalAveragePool|GlobalLpPool|GlobalMaxPool|LpPool|MaxPool|MaxRoiPool",
+        "matchTypes": [
+          "title"
+        ]
+      }
+    ],
+    "nodeType": "op_nodes",
+    "styles": {
+      "node_bg_color": {
+        "id": "node_bg_color",
+        "value": "#335533"
+      },
+      "node_text_color": {
+        "id": "node_text_color",
+        "value": "#ffffff"
+      }
+    },
+    "version": "v2"
+  },
+  {
+    "queries": [
+      {
+        "type": "node_type",
+        "nodeType": "op_nodes"
+      },
+      {
+        "type": "regex",
+        "queryRegex": "BatchNormalization|InstanceNormalization|LRN|LayerNormalization|LpNormalization|SimplifiedLayerNormalization|SkipSimplifiedLayerNormalization",
+        "matchTypes": [
+          "title"
+        ]
+      }
+    ],
+    "nodeType": "op_nodes",
+    "styles": {
+      "node_bg_color": {
+        "id": "node_bg_color",
+        "value": "#335544"
+      },
+      "node_text_color": {
+        "id": "node_text_color",
+        "value": "#ffffff"
+      }
+    },
+    "version": "v2"
+  },
+  {
+    "queries": [
+      {
+        "type": "node_type",
+        "nodeType": "op_nodes"
+      },
+      {
+        "type": "regex",
+        "queryRegex": "Clip|Elu|HardSigmoid|LeakyRelu|LogSoftmax|PRelu|Relu|Selu|Sigmoid|Softmax|Softplus|Softsign|Tanh|ThresholdedRelu",
+        "matchTypes": [
+          "title"
+        ]
+      }
+    ],
+    "nodeType": "op_nodes",
+    "styles": {
+      "node_bg_color": {
+        "id": "node_bg_color",
+        "value": "#4b1b16"
+      },
+      "node_text_color": {
+        "id": "node_text_color",
+        "value": "#ffffff"
+      }
+    },
+    "version": "v2"
+  },
+  {
+    "queries": [
+      {
+        "type": "node_type",
+        "nodeType": "op_nodes"
+      },
+      {
+        "type": "regex",
+        "queryRegex": "Concat|Pad|Slice|Split",
+        "matchTypes": [
+          "title"
+        ]
+      }
+    ],
+    "nodeType": "op_nodes",
+    "styles": {
+      "node_bg_color": {
+        "id": "node_bg_color",
+        "value": "#59423b"
+      },
+      "node_text_color": {
+        "id": "node_text_color",
+        "value": "#ffffff"
+      }
+    },
+    "version": "v2"
+  },
+  {
+    "queries": [
+      {
+        "type": "node_type",
+        "nodeType": "op_nodes"
+      },
+      {
+        "type": "regex",
+        "queryRegex": "Conv|ConvInteger|ConvTranspose|FusedConv|GRU|Gemm|LSTM|RNN",
+        "matchTypes": [
+          "title"
+        ]
+      }
+    ],
+    "nodeType": "op_nodes",
+    "styles": {
+      "node_bg_color": {
+        "id": "node_bg_color",
+        "value": "#335588"
+      },
+      "node_text_color": {
+        "id": "node_text_color",
+        "value": "#ffffff"
+      }
+    },
+    "version": "v2"
+  },
+  {
+    "queries": [
+      {
+        "type": "node_type",
+        "nodeType": "op_nodes"
+      },
+      {
+        "type": "regex",
+        "queryRegex": "Crop|ImageScaler|Upsample",
+        "matchTypes": [
+          "title"
+        ]
+      }
+    ],
+    "nodeType": "op_nodes",
+    "styles": {
+      "node_bg_color": {
+        "id": "node_bg_color",
+        "value": "#555555"
+      },
+      "node_text_color": {
+        "id": "node_text_color",
+        "value": "#ffffff"
+      }
+    },
+    "version": "v2"
+  },
+  {
+    "queries": [
+      {
+        "type": "node_type",
+        "nodeType": "op_nodes"
+      },
+      {
+        "type": "regex",
+        "queryRegex": "Dropout",
+        "matchTypes": [
+          "title"
+        ]
+      }
+    ],
+    "nodeType": "op_nodes",
+    "styles": {
+      "node_bg_color": {
+        "id": "node_bg_color",
+        "value": "#454770"
+      },
+      "node_text_color": {
+        "id": "node_text_color",
+        "value": "#ffffff"
+      }
+    },
+    "version": "v2"
+  },
+  {
+    "queries": [
+      {
+        "type": "node_type",
+        "nodeType": "op_nodes"
+      },
+      {
+        "type": "regex",
+        "queryRegex": "Flatten|Reshape|Tile",
+        "matchTypes": [
+          "title"
+        ]
+      }
+    ],
+    "nodeType": "op_nodes",
+    "styles": {
+      "node_bg_color": {
+        "id": "node_bg_color",
+        "value": "#6c4f47"
+      },
+      "node_text_color": {
+        "id": "node_text_color",
+        "value": "#ffffff"
+      }
+    },
+    "version": "v2"
+  },
+  {
+    "queries": [
+      {
+        "type": "node_type",
+        "nodeType": "op_nodes"
+      },
+      {
+        "type": "regex",
+        "queryRegex": "Gather|RotaryEmbedding|Squeeze|Transpose|Unsqueeze",
+        "matchTypes": [
+          "title"
+        ]
+      }
+    ],
+    "nodeType": "op_nodes",
+    "styles": {
+      "node_bg_color": {
+        "id": "node_bg_color",
+        "value": "#335544"
+      },
+      "node_text_color": {
+        "id": "node_text_color",
+        "value": "#ffffff"
+      }
+    },
+    "version": "v2"
+  },
+  {
+    "queries": [
+      {
+        "type": "node_type",
+        "nodeType": "op_nodes"
+      },
+      {
+        "type": "regex",
+        "queryRegex": "Initializer|Constant",
+        "matchTypes": [
+          "title"
+        ]
+      }
+    ],
+    "nodeType": "op_nodes",
+    "styles": {
+      "node_bg_color": {
+        "id": "node_bg_color",
+        "value": "#ffffff"
+      },
+      "node_text_color": {
+        "id": "node_text_color",
+        "value": "#000000"
+      }
+    },
+    "version": "v2"
+  },
+  {
+    "queries": [
+      {
+        "type": "node_type",
+        "nodeType": "op_nodes"
+      },
+      {
+        "type": "regex",
+        "queryRegex": "Input|Output",
+        "matchTypes": [
+          "title"
+        ]
+      }
+    ],
+    "nodeType": "op_nodes",
+    "styles": {
+      "node_bg_color": {
+        "id": "node_bg_color",
+        "value": "#eeeeee"
+      },
+      "node_text_color": {
+        "id": "node_text_color",
+        "value": "#000000"
+      }
+    },
+    "version": "v2"
+  },
+  {
+    "queries": [
+      {
+        "type": "node_type",
+        "nodeType": "op_nodes"
+      },
+      {
+        "type": "regex",
+        "queryRegex": ".*",
+        "matchTypes": [
+          "title"
+        ]
+      }
+    ],
+    "nodeType": "op_nodes",
+    "styles": {
+      "node_bg_color": {
+        "id": "node_bg_color",
+        "value": "#000000"
+      },
+      "node_text_color": {
+        "id": "node_text_color",
+        "value": "#ffffff"
+      }
+    },
+    "version": "v2"
+  }
+]
