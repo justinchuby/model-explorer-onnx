@@ -444,11 +444,11 @@ def add_initializers(
                 "Initializer does not have a name. Skipping: %s", initializer
             )
             continue
-        initializer_node_name = get_initializer_node_name(initializer)
-        if initializer_node_name in all_nodes:
+        input_node_name = get_graph_io_node_name(initializer)
+        if input_node_name in all_nodes:
             # The initializer is also a graph input.
             # Convert it into an InitializedInput and fill in the missing metadata
-            node = all_nodes[initializer_node_name]
+            node = all_nodes[input_node_name]
             node.label = "InitializedInput"
             set_attr(
                 node,
@@ -468,6 +468,7 @@ def add_initializers(
             metadata = node.outputsMetadata[0]
             set_attr(metadata, "value", display_tensor_repr(initializer.const_value))
             continue
+        initializer_node_name = get_initializer_node_name(initializer)
         node = graph_builder.GraphNode(
             id=initializer_node_name,
             label="Initializer",
