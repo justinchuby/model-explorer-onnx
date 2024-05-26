@@ -330,6 +330,10 @@ def create_node(
     if onnx_node.op_type == "Constant":
         # Move the constant closer to the user node's namespace
         namespace = get_constant_namespace(onnx_node.outputs[0], namespace)
+    elif metadata_namespace := onnx_node.metadata_props.get("namespace"):
+        embedded_namespace = parse_namespace(metadata_namespace)
+        if embedded_namespace:
+            namespace = namespace + "/" + "/".join(embedded_namespace)
     else:
         embedded_namespace = parse_namespace(onnx_node.name)
         if embedded_namespace:
