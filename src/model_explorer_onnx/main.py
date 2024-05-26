@@ -158,6 +158,11 @@ def set_type_shape_metadata(
     set_attr(metadata, "tensor_shape", format_tensor_shape(value))
 
 
+def set_metadata_props(metadata: graph_builder.MetadataItem, value: ir.Value) -> None:
+    for prop_key, prop_value in value.metadata_props.items():
+        set_attr(metadata, f"[metadata] {prop_key}", prop_value)
+
+
 def add_inputs_metadata(
     onnx_node: ir.Node, node: graph_builder.GraphNode, opset_version: int
 ) -> None:
@@ -174,8 +179,7 @@ def add_inputs_metadata(
         else:
             set_attr(metadata, "__tensor_tag", input_value.name or "None")
             set_type_shape_metadata(metadata, input_value)
-            for prop_key, prop_value in input_value.metadata_props.items():
-                set_attr(metadata, f"[metadata] {prop_key}", prop_value)
+            set_metadata_props(metadata, input_value)
         if schema is not None:
             if (param_name := get_node_input_param_name(schema, i)) is not None:
                 set_attr(metadata, "param_name", param_name)
@@ -195,8 +199,7 @@ def add_outputs_metadata(
         metadata = graph_builder.MetadataItem(id=str(output_value.index()), attrs=[])
         set_attr(metadata, "__tensor_tag", output_value.name or "None")
         set_type_shape_metadata(metadata, output_value)
-        for prop_key, prop_value in output_value.metadata_props.items():
-            set_attr(metadata, f"[metadata] {prop_key}", prop_value)
+        set_metadata_props(metadata, output_value)
         if len(output_value.uses()) == 0 and not output_value.is_graph_output():
             # The output is unused. Add a flag to indicate that.
             set_attr(metadata, "unused", "True")
@@ -370,6 +373,7 @@ def add_graph_io(
             metadata = graph_builder.MetadataItem(id="0", attrs=[])
             set_attr(metadata, "__tensor_tag", value.name or "")
             set_type_shape_metadata(metadata, value)
+            set_metadata_props(metadata, value)
             node.outputsMetadata.append(metadata)
         set_attr(node, "name", value.name or "")
         set_attr(node, "index", str(i))
@@ -477,6 +481,7 @@ def add_initializers(
                 display_tensor_json(initializer.const_value, settings=settings),
             )
         set_attr(metadata, "value", display_tensor_repr(initializer.const_value))
+        set_metadata_props(metadata, initializer)
         # Note if the initializer is unused
         if not initializer.uses():
             set_attr(metadata, "unused", "True")
