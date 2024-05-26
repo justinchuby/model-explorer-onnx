@@ -302,10 +302,19 @@ def create_op_label(domain: str, op_type: str) -> str:
     return f"{domain}::{op_type}"
 
 
-def parse_namespace(node_name: str) -> list[str]:
+def _parse_namespace(node_name: str) -> list[str]:
     """Parse the namespace from the node name if it is in the format of /namespace/node_name."""
     split = node_name.lstrip("/").rstrip("/").split("/")[0:-1]
     return [ns or "<anonymous>" for ns in split]
+
+
+def get_node_namespace(node: ir.Node) -> list[str]:
+    """Get the namespace from the node."""
+    if (metadata_namespace := node.metadata_props.get("namespace")) is not None:
+        return _parse_namespace(metadata_namespace)
+    if node.name:
+        return _parse_namespace(node.name)
+    return []
 
 
 def create_node(
@@ -330,12 +339,8 @@ def create_node(
     if onnx_node.op_type == "Constant":
         # Move the constant closer to the user node's namespace
         namespace = get_constant_namespace(onnx_node.outputs[0], namespace)
-    elif metadata_namespace := onnx_node.metadata_props.get("namespace"):
-        embedded_namespace = parse_namespace(metadata_namespace)
-        if embedded_namespace:
-            namespace = namespace + "/" + "/".join(embedded_namespace)
     else:
-        embedded_namespace = parse_namespace(onnx_node.name)
+        embedded_namespace = get_node_namespace(onnx_node)
         if embedded_namespace:
             namespace = namespace + "/" + "/".join(embedded_namespace)
     node = graph_builder.GraphNode(
@@ -399,22 +404,16 @@ def get_constant_namespace(initializer: ir.Value, root_namespace: str) -> str:
     if len(user_nodes) == 1:
         # If the initializer is used by a single node, move it to the same namespace as the node
         user_node = user_nodes[0]
-        assert (
-            user_node.name
-        ), "Bug: Node name is required and should have been assigned"
-        user_node_namespace = parse_namespace(user_node.name)
+        user_node_namespace = get_node_namespace(user_node)
         if user_node_namespace:
             initializer_namespace = (
                 initializer_namespace + "/" + "/".join(user_node_namespace)
             )
     else:
         # If there are multiple user nodes, find the common namespace
-        common_namespace = parse_namespace(user_nodes[0].name)  # type: ignore
+        common_namespace = get_node_namespace(user_nodes[0])
         for user_node in user_nodes:
-            assert (
-                user_node.name
-            ), "Bug: Node name is required and should have been assigned"
-            user_node_namespace = parse_namespace(user_node.name)
+            user_node_namespace = get_node_namespace(user_node)
             for i, (name_a, name_b) in enumerate(
                 zip(common_namespace, user_node_namespace)
             ):
