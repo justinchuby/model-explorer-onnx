@@ -304,7 +304,7 @@ def create_op_label(domain: str, op_type: str) -> str:
 
 def _parse_namespace(node_name: str) -> list[str]:
     """Parse the namespace from the node name if it is in the format of /namespace/node_name."""
-    split = node_name.lstrip("/").rstrip("/").split("/")[0:-1]
+    split = node_name.lstrip("/").rstrip("/").split("/")
     return [ns or "<anonymous>" for ns in split]
 
 
