@@ -2,7 +2,7 @@
   {
     "queries": [
       {
-        "type": "node_type",
+        "type": "node_type","
         "nodeType": "op_nodes"
       },
       {
