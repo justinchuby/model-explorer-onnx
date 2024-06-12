@@ -313,7 +313,8 @@ def get_node_namespace(node: ir.Node) -> list[str]:
     if (metadata_namespace := node.metadata_props.get("namespace")) is not None:
         return _parse_namespace(metadata_namespace)
     if node.name:
-        return _parse_namespace(node.name)
+        # Remove the last part of the node name to get the namespace
+        return _parse_namespace(node.name)[:-1]
     return []
 
 
