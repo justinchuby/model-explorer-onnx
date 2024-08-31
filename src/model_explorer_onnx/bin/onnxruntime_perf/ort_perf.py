@@ -3,13 +3,13 @@
 import json
 import os
 from model_explorer import node_data_builder as ndb
-from typing import Any, Collection
+from typing import Any
 import argparse
 
 
 def _get_node_runtime_micro_secs(perf_traces: list[dict[str, Any]]) -> dict[str, int]:
     """Get the runtime of each node from the performance traces."""
-    node_runtimes: dict[str, float] = {}
+    node_runtimes: dict[str, int] = {}
     for trace in perf_traces:
         if trace.get("cat") != "Node":
             continue
@@ -33,20 +33,15 @@ def _convert_node_data_for_model_explorer(
         key: ndb.NodeDataResult(value=value) for key, value in node_runtimes.items()
     }
 
-    # thresholds: list[ndb.ThresholdItem] = [
-    #     ndb.ThresholdItem(value=0.00001, bgColor="#388e3c"),
-    #     ndb.ThresholdItem(value=0.0001, bgColor="#8bc34a"),
-    #     ndb.ThresholdItem(value=0.001, bgColor="#c8e6c9"),
-    #     ndb.ThresholdItem(value=0.01, bgColor="#ffa000"),
-    #     ndb.ThresholdItem(value=1, bgColor="#ff5722"),
-    #     ndb.ThresholdItem(value=100, bgColor="#d32f2f"),
-    # ]
+    max_value = max(node_runtimes.values())
+
+    gradient: list[ndb.GradientItem] = [
+        ndb.GradientItem(stop=0, bgColor="green"),
+        ndb.GradientItem(stop=max_value, bgColor="yellow"),
+    ]
 
     # # Construct the data for the main graph.
-    # main_graph_data = ndb.GraphNodeData(
-    #     results=main_graph_results, thresholds=thresholds
-    # )
-    main_graph_data = ndb.GraphNodeData(results=main_graph_results)
+    main_graph_data = ndb.GraphNodeData(results=main_graph_results, gradient=gradient)
 
     # Construct the data for the model.
     # "main_graph" is defined in _core.py
