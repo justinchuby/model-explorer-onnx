@@ -33,11 +33,9 @@ def _convert_node_data_for_model_explorer(
         key: ndb.NodeDataResult(value=value) for key, value in node_runtimes.items()
     }
 
-    max_value = max(node_runtimes.values())
-
     gradient: list[ndb.GradientItem] = [
         ndb.GradientItem(stop=0, bgColor="green"),
-        ndb.GradientItem(stop=max_value, bgColor="yellow"),
+        ndb.GradientItem(stop=1, bgColor="red"),
     ]
 
     # # Construct the data for the main graph.
