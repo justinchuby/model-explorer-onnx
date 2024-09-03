@@ -504,7 +504,13 @@ def create_graph(
     graph = gb.Graph(
         id=graph_name,
         nodes=[],
-        groupNodeAttributes={"": {key: str(value) for key, value in attrs.items()}},
+        groupNodeAttributes={
+            "": {key: str(value) for key, value in attrs.items()},
+            graph_name: {
+                f"[metadata] {key}": str(value)
+                for key, value in onnx_graph.metadata_props.items()
+            },
+        },
     )
     graph_inputs = set(onnx_graph.inputs)
     all_nodes = {}
