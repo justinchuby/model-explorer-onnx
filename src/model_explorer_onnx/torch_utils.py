@@ -50,6 +50,29 @@ def save_node_data_from_verification_info(
 ):
     """Saves the node data for model explorer.
 
+    Example::
+
+        onnx_program = torch.onnx.export(
+            model,
+            args,
+            dynamo=True
+        )
+
+        onnx_program.save("model.onnx")
+
+        from torch.onnx._internal.exporter._verification import VerificationInterpreter
+
+        interpreter = VerificationInterpreter(onnx_program)
+        interpreter.run(*args)
+
+        from model_explorer_onnx.torch_utils import save_node_data_from_verification_info
+
+        save_node_data_from_verification_info(
+            interpreter.verification_infos, onnx_program.model, model_name="model"
+        )
+
+    You can then use Model Explorer to visualize the results by loading the generated node data files.
+
     Args:
         verification_infos: The verification information objects.
         node_names: The names of the nodes each VerificationInfo corresponds to.
