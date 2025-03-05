@@ -60,7 +60,7 @@ def save_node_data_from_verification_info(
 
         onnx_program.save("model.onnx")
 
-        from torch.onnx._internal.exporter._verification import VerificationInterpreter
+        from torch.onnx.verification import VerificationInterpreter
 
         interpreter = VerificationInterpreter(onnx_program)
         interpreter.run(*args)

@@ -35,6 +35,36 @@ Graph input/output/initializers in ONNX are values (edges), not nodes. A node is
 
 Get node color themes [here](./themes)
 
+## Visualizing PyTorch ONNX exporter (`dynamo=True`) accuracy results
+
+```py
+import torch
+from torch.onnx.verification import VerificationInterpreter
+
+from model_explorer_onnx.torch_utils import save_node_data_from_verification_info
+
+# Export the and save model
+onnx_program = torch.onnx.export(model, args, dynamo=True)
+onnx_program.save("model.onnx")
+
+# Use the VerificationInterpreter to obtain accuracy results
+interpreter = VerificationInterpreter(onnx_program)
+interpreter.run(*args)
+
+# Produce node data for Model Explorer for visualization
+save_node_data_from_verification_info(
+    interpreter.verification_infos, onnx_program.model, model_name="model"
+)
+```
+
+You can then use Model Explorer to visualize the results by loading the generated node data files:
+
+```sh
+onnxvis model.onnx --node_data_paths=model_max_abs_diff.json,model_max_rel_diff.json
+```
+
+![node_data](./screenshots/node_data.png)
+
 ## Screenshots
 
 <img width="1294" alt="image" src="https://github.com/justinchuby/model-explorer-onnx/assets/11205048/ed7e1eee-a693-48bd-811d-b384f784ef9b">
