@@ -60,15 +60,14 @@ def save_node_data_from_verification_info(
 
         onnx_program.save("model.onnx")
 
-        from torch.onnx.verification import VerificationInterpreter
+        from torch.onnx.verification import verify_onnx_program
 
-        interpreter = VerificationInterpreter(onnx_program)
-        interpreter.run(*args)
+        verification_infos = verify_onnx_program(onnx_program, compare_intermediates=True)
 
         from model_explorer_onnx.torch_utils import save_node_data_from_verification_info
 
         save_node_data_from_verification_info(
-            interpreter.verification_infos, onnx_program.model, model_name="model"
+            verification_infos, onnx_program.model, model_name="model"
         )
 
     You can then use Model Explorer to visualize the results by loading the generated node data files.

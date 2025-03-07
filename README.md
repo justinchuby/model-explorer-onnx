@@ -42,7 +42,7 @@ Get node color themes [here](./themes)
 
 ```py
 import torch
-from torch.onnx.verification import VerificationInterpreter
+from torch.onnx.verification import verify_onnx_program
 
 from model_explorer_onnx.torch_utils import save_node_data_from_verification_info
 
@@ -50,13 +50,11 @@ from model_explorer_onnx.torch_utils import save_node_data_from_verification_inf
 onnx_program = torch.onnx.export(model, args, dynamo=True)
 onnx_program.save("model.onnx")
 
-# Use the VerificationInterpreter to obtain accuracy results
-interpreter = VerificationInterpreter(onnx_program)
-interpreter.run(*args)
+verification_infos = verify_onnx_program(onnx_program, compare_intermediates=True)
 
 # Produce node data for Model Explorer for visualization
 save_node_data_from_verification_info(
-    interpreter.verification_infos, onnx_program.model, model_name="model"
+    verification_infos, onnx_program.model, model_name="model"
 )
 ```
 
