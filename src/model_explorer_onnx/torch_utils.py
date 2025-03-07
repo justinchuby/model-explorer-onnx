@@ -101,10 +101,11 @@ def save_node_data_from_verification_info(
                 main_graph_results[f"[value] {info.name}"] = ndb.NodeDataResult(
                     value=getattr(info, field)
                 )
-            else:
-                main_graph_results[node_name] = ndb.NodeDataResult(
-                    value=getattr(info, field)
-                )
+            # Always add the node name to the main graph results because we still
+            # display the result for the output node.
+            main_graph_results[node_name] = ndb.NodeDataResult(
+                value=getattr(info, field)
+            )
 
         thresholds: list[ndb.ThresholdItem] = [
             ndb.ThresholdItem(value=0.00001, bgColor="#388e3c"),
