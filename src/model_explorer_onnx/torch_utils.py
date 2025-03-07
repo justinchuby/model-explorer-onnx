@@ -81,7 +81,6 @@ def save_node_data_from_verification_info(
     values = _create_value_mapping(onnx_model.graph)
     node_names = []
     for info in verification_infos:
-        print(info.name, info.max_abs_diff)
         if info.name in values:
             node_names.append(values[info.name].producer().name)
         else:
