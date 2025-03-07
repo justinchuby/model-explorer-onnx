@@ -38,7 +38,7 @@ Get node color themes [here](./themes)
 ## Visualizing PyTorch ONNX exporter (`dynamo=True`) accuracy results
 
 > [!NOTE]
-> `VerificationInterpreter` requires PyTorch 2.7 or newer
+> `verify_onnx_program` requires PyTorch 2.7 or newer
 
 ```py
 import torch
