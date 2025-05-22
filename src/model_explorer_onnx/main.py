@@ -583,7 +583,6 @@ class ONNXAdapter(model_explorer.Adapter):
             opset_version = model.opset_imports.get("ai.onnx")
         if opset_version is None:
             opset_version = _DEFAULT_OPSET_VERSION
-        # TODO: Better support subgraphs in nodes
         if model.graph.name is None:
             model.graph.name = "<main>"
             logger.warning(
@@ -610,6 +609,29 @@ class ONNXAdapter(model_explorer.Adapter):
         )
         assert main_graph is not None, "Bug: Main graph should not be None"
         graphs.append(main_graph)
+
+        # TODO: Better support subgraphs in nodes: If
+        for node in model.graph:
+            for i, attr in enumerate(node.attributes.values()):
+                if attr.type == ir.AttributeType.GRAPH:
+                    attr.value.name = f"{'/'.join(get_node_namespace(node))}/{node.name}/{attr.value.name}_{i}"
+                    subgraph = create_graph(
+                        attr.value,
+                        all_function_ids,
+                        opset_version=opset_version,
+                        settings=parsed_settings,
+                        attrs={
+                            "opset_imports": model.opset_imports,
+                            "attributes": node.attributes,
+                            "doc_string": node.doc_string,
+                            **{
+                                f"[metadata] {key}": value
+                                for key, value in node.metadata_props.items()
+                            },
+                        },
+                    )
+                    if subgraph is not None:
+                        graphs.append(subgraph)
 
         for function in model.functions.values():
             function_graph = create_graph(
