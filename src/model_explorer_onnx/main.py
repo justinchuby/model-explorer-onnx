@@ -211,7 +211,7 @@ def add_outputs_metadata(onnx_node: ir.Node, node: gb.GraphNode, opset_version: 
 
 def add_node_attrs(onnx_node: ir.Node, node: gb.GraphNode, settings: Settings) -> None:
     for attr in onnx_node.attributes.values():
-        if isinstance(attr, ir.Attr):
+        if isinstance(attr, ir.Attr) and attr.value is not None:
             if attr.type == ir.AttributeType.TENSOR:
                 if onnx_node.op_type in {"Constant", "Initializer"}:
                     if can_display_tensor_json(attr.value, settings=settings):
@@ -246,7 +246,8 @@ def add_node_attrs(onnx_node: ir.Node, node: gb.GraphNode, settings: Settings) -
             else:
                 attr_value = str(attr.value)
             set_attr(node, attr.name, attr_value)
-        elif isinstance(attr, ir.RefAttr):
+        else:
+            # Reference attribute
             set_attr(node, attr.name, f"@{attr.ref_attr_name}")
 
     if onnx_node.doc_string:
