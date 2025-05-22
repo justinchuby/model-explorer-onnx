@@ -101,6 +101,11 @@ def get_function_graph_name(identifier: ir.OperatorIdentifier) -> str:
     return name
 
 
+def get_subgraph_name(node: ir.Node, attr_name: str) -> str:
+    """Create a name for the subgraph based on the node and attribute name."""
+    return f"{node.name}/{attr_name}"
+
+
 def get_node_input_param_name(
     schema: onnx.defs.OpSchema, input_index: int
 ) -> str | None:
@@ -350,6 +355,10 @@ def create_node(
     add_outputs_metadata(onnx_node, node, opset_version=opset_version)
     if onnx_node.op_identifier() in all_function_ids:
         node.subgraphIds.append(get_function_graph_name(onnx_node.op_identifier()))
+    for i, attr in enumerate(onnx_node.attributes.values()):
+        if attr.type == ir.AttributeType.GRAPH:
+            # The attribute is a subgraph. Add the subgraph ID to the node.
+            node.subgraphIds.append(get_subgraph_name(onnx_node, attr.name))
     return node
 
 
@@ -583,7 +592,6 @@ class ONNXAdapter(model_explorer.Adapter):
             opset_version = model.opset_imports.get("ai.onnx")
         if opset_version is None:
             opset_version = _DEFAULT_OPSET_VERSION
-        # TODO: Better support subgraphs in nodes
         if model.graph.name is None:
             model.graph.name = "<main>"
             logger.warning(
@@ -610,6 +618,29 @@ class ONNXAdapter(model_explorer.Adapter):
         )
         assert main_graph is not None, "Bug: Main graph should not be None"
         graphs.append(main_graph)
+
+        # TODO: Better support subgraphs in nodes: If
+        for node in model.graph:
+            for attr in node.attributes.values():
+                if attr.type == ir.AttributeType.GRAPH:
+                    attr.value.name = get_subgraph_name(node, attr.name)
+                    subgraph = create_graph(
+                        attr.value,
+                        all_function_ids,
+                        opset_version=opset_version,
+                        settings=parsed_settings,
+                        attrs={
+                            "opset_imports": model.opset_imports,
+                            "attributes": node.attributes,
+                            "doc_string": node.doc_string,
+                            **{
+                                f"[metadata] {key}": value
+                                for key, value in node.metadata_props.items()
+                            },
+                        },
+                    )
+                    if subgraph is not None:
+                        graphs.append(subgraph)
 
         for function in model.functions.values():
             function_graph = create_graph(
