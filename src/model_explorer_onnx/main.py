@@ -614,7 +614,7 @@ class ONNXAdapter(model_explorer.Adapter):
         for node in model.graph:
             for i, attr in enumerate(node.attributes.values()):
                 if attr.type == ir.AttributeType.GRAPH:
-                    attr.value.name = f"{'/'.join(get_node_namespace(node))}/{node.name}/{attr.value.name}_{i}"
+                    attr.value.name = f"{model.graph.name}{'/'.join(get_node_namespace(node))}/{node.name}/{attr.value.name}_{i}"
                     subgraph = create_graph(
                         attr.value,
                         all_function_ids,
