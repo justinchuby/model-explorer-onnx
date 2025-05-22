@@ -101,6 +101,11 @@ def get_function_graph_name(identifier: ir.OperatorIdentifier) -> str:
     return name
 
 
+def get_subgraph_name(node: ir.Node, attr_name: str) -> str:
+    """Create a name for the subgraph based on the node and attribute name."""
+    return f"{node.name}/{attr_name}"
+
+
 def get_node_input_param_name(
     schema: onnx.defs.OpSchema, input_index: int
 ) -> str | None:
@@ -350,6 +355,10 @@ def create_node(
     add_outputs_metadata(onnx_node, node, opset_version=opset_version)
     if onnx_node.op_identifier() in all_function_ids:
         node.subgraphIds.append(get_function_graph_name(onnx_node.op_identifier()))
+    for i, attr in enumerate(onnx_node.attributes.values()):
+        if attr.type == ir.AttributeType.GRAPH:
+            # The attribute is a subgraph. Add the subgraph ID to the node.
+            node.subgraphIds.append(get_subgraph_name(onnx_node, attr.name))
     return node
 
 
@@ -612,9 +621,9 @@ class ONNXAdapter(model_explorer.Adapter):
 
         # TODO: Better support subgraphs in nodes: If
         for node in model.graph:
-            for i, attr in enumerate(node.attributes.values()):
+            for attr in node.attributes.values():
                 if attr.type == ir.AttributeType.GRAPH:
-                    attr.value.name = f"{model.graph.name}{'/'.join(get_node_namespace(node))}/{node.name}/{attr.value.name}_{i}"
+                    attr.value.name = get_subgraph_name(node, attr.name)
                     subgraph = create_graph(
                         attr.value,
                         all_function_ids,
