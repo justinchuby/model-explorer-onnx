@@ -1,8 +1,8 @@
 import pathlib
 
-import onnx
-from onnxscript import ir
 import numpy as np
+import onnx
+import onnx_ir as ir
 
 
 def main():

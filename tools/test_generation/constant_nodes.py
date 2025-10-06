@@ -2,7 +2,7 @@ import math
 import pathlib
 
 import onnx
-from onnxscript import ir
+import onnx_ir as ir
 
 
 def main():

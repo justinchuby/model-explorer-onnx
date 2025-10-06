@@ -4,12 +4,11 @@ import json
 import logging
 from typing import Any, Literal, Sequence
 
-import ml_dtypes
 import model_explorer
 import numpy as np
 import onnx
+import onnx_ir as ir
 from model_explorer import graph_builder as gb
-from onnxscript import ir
 
 logger = logging.getLogger(__name__)
 
@@ -19,21 +18,6 @@ _DEFAULT_OPSET_VERSION = 18
 class Settings:
     def __init__(self, const_element_count_limit: int = 1024, **_: Any):
         self.const_element_count_limit: int = const_element_count_limit
-
-
-def _tensor_to_numpy(tensor: ir.TensorProtocol) -> np.ndarray:
-    array = tensor.numpy()
-    if tensor.dtype == ir.DataType.BFLOAT16:
-        array = array.view(ml_dtypes.bfloat16)
-    elif tensor.dtype == ir.DataType.FLOAT8E4M3FN:
-        array = array.view(ml_dtypes.float8_e4m3fn)
-    elif tensor.dtype == ir.DataType.FLOAT8E4M3FNUZ:
-        array = array.view(ml_dtypes.float8_e4m3fnuz)
-    elif tensor.dtype == ir.DataType.FLOAT8E5M2:
-        array = array.view(ml_dtypes.float8_e5m2)
-    elif tensor.dtype == ir.DataType.FLOAT8E5M2FNUZ:
-        array = array.view(ml_dtypes.float8_e5m2fnuz)
-    return array
 
 
 def display_tensor_repr(tensor: ir.TensorProtocol | None) -> str:
@@ -61,7 +45,7 @@ def display_tensor_json(
         if isinstance(tensor, np.ndarray):
             array = tensor
         else:
-            array = _tensor_to_numpy(tensor)
+            array = tensor.numpy()
         size_limit = settings.const_element_count_limit
         if size_limit < 0 or size_limit >= array.size:
             # Use separators=(',', ':') to remove spaces

@@ -1,12 +1,13 @@
 """Utilities for PyTorch"""
 
 from __future__ import annotations
-import os
-from typing import Collection, TYPE_CHECKING
 
-from model_explorer import node_data_builder as ndb
-from onnxscript import ir
 import logging
+import os
+from typing import TYPE_CHECKING, Collection
+
+import onnx_ir as ir
+from model_explorer import node_data_builder as ndb
 
 if TYPE_CHECKING:
     # TODO: Change the import when it is exposed to public
