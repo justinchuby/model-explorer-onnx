@@ -87,8 +87,9 @@ def save_node_data_from_verification_info(
                 logger.warning(
                     "The value %s does not have a producer node.", values[info.name]
                 )
-                continue
-            node_names.append(producer.name)
+                node_names.append(info.name)
+            else:
+                node_names.append(producer.name)
         else:
             node_names.append(info.name)
             logger.warning(
