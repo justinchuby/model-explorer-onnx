@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def _parse_namespace(node_name: str) -> list[str]:
     """Parse the namespace from the node name if it is in the format of /namespace/node_name."""
     split = node_name.lstrip("/").rstrip("/").split("/")
-    return [ns or "<anonymous>" for ns in split]
+    return [ns for ns in split if ns != ""]
 
 
 def get_node_namespace(node: ir.Node) -> list[str]:
@@ -19,6 +19,9 @@ def get_node_namespace(node: ir.Node) -> list[str]:
     if (metadata_namespace := node.metadata_props.get("namespace")) is not None:
         return _parse_namespace(metadata_namespace)
     if node.name:
+        ns = _parse_namespace(node.name)
+        if not ns:
+            return []
         # Remove the last part of the node name to get the namespace
         return _parse_namespace(node.name)[:-1]
     return []
