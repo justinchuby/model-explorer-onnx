@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import logging
 import onnx_ir as ir
 import onnx_ir.passes.common as common_passes
+
+
+logger = logging.getLogger(__name__)
 
 
 def _parse_namespace(node_name: str) -> list[str]:
@@ -52,6 +56,10 @@ class EmbedIfPass(ir.passes.InPlacePass):
                 if attr.type == ir.AttributeType.GRAPH:
                     subgraphs.append((name, attr.as_graph()))
 
+            if not subgraphs:
+                logger.warning("IF node %s has no subgraphs", node.name)
+                continue
+
             outputs = []
             last_node = None
             for attr_name, subgraph in subgraphs:
@@ -62,8 +70,9 @@ class EmbedIfPass(ir.passes.InPlacePass):
                         (*parent_namespace, attr_name, *sub_namespace)
                     )
                     sub_node.name = f"{node.name}/{attr_name}/{sub_node.name}"
-                    for output in sub_node.outputs:
+                    for idx, output in enumerate(sub_node.outputs):
                         output.name = f"{node.name}/{attr_name}/{output.name}"
+                        output.metadata_props["graph_output_index"] = str(idx)
                 # Remove the attribute from the node
                 node.attributes.pop(attr_name)
                 outputs.extend(subgraph.outputs)
@@ -77,8 +86,10 @@ class EmbedIfPass(ir.passes.InPlacePass):
             # Create a phi node to merge outputs
             phi_node = ir.node(
                 "(Phi)",
-                inputs=[out for out in outputs],
+                inputs=(*([None] * len(node.outputs)), *[out for out in outputs]),
                 num_outputs=len(node.outputs),
+                name=f"{node.name}_phi",
+                metadata_props=node.metadata_props.copy(),
             )
             last_node.append(phi_node)
             # Copy all information from the If node to the Phi node
@@ -89,6 +100,8 @@ class EmbedIfPass(ir.passes.InPlacePass):
                 phi_output.shape = output.shape
                 output.replace_all_uses_with(phi_output, replace_graph_outputs=True)
                 output.name = f"{output.name}_if_"
+            for i, output in enumerate(node.outputs):
+                phi_node.replace_input_with(i, output)
         return ir.passes.PassResult(model, modified=modified)
 
 
