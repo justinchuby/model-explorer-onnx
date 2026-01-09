@@ -113,7 +113,6 @@ class AddCaptureNodePass(ir.passes.InPlacePass):
     def _find_closed_values(self, subgraph: ir.Graph) -> list[ir.Value]:
         """Find all values that are closed (captured from outer scope) in a subgraph."""
         used_values = []
-        subgraph_input_names = {inp.name for inp in subgraph.inputs}
 
         for node in subgraph:
             for inp in node.inputs:
