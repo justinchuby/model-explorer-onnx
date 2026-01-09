@@ -1,0 +1,142 @@
+ir_version: 10
+graph {
+  node {
+    input: "input"
+    input: "shared_weight"
+    output: "main_output"
+    name: "node_Mul_0"
+    op_type: "Mul"
+  }
+  node {
+    input: "condition"
+    output: "output"
+    name: "node_If_1"
+    op_type: "If"
+    attribute {
+      name: "then_branch"
+      g {
+        node {
+          input: "main_output"
+          input: "shared_weight"
+          output: "then_result"
+          name: "node_Add_0"
+          op_type: "Add"
+        }
+        name: "then_branch"
+        output {
+          name: "then_result"
+          type {
+            tensor_type {
+              elem_type: 1
+              shape {
+                dim {
+                  dim_value: 2
+                }
+              }
+            }
+          }
+        }
+      }
+      type: GRAPH
+    }
+    attribute {
+      name: "else_branch"
+      g {
+        node {
+          input: "main_output"
+          output: "else_result"
+          name: "node_Identity_0"
+          op_type: "Identity"
+        }
+        name: "else_branch"
+        output {
+          name: "else_result"
+          type {
+            tensor_type {
+              elem_type: 1
+              shape {
+                dim {
+                  dim_value: 2
+                }
+              }
+            }
+          }
+        }
+      }
+      type: GRAPH
+    }
+  }
+  name: "main_graph"
+  initializer {
+    dims: 2
+    data_type: 1
+    name: "shared_weight"
+    raw_data: "\000\000\000@\000\000@@"
+  }
+  input {
+    name: "input"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 2
+          }
+        }
+      }
+    }
+  }
+  input {
+    name: "condition"
+    type {
+      tensor_type {
+        elem_type: 9
+        shape {
+        }
+      }
+    }
+  }
+  output {
+    name: "output"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 2
+          }
+        }
+      }
+    }
+  }
+  value_info {
+    name: "shared_weight"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 2
+          }
+        }
+      }
+    }
+  }
+  value_info {
+    name: "main_output"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 2
+          }
+        }
+      }
+    }
+  }
+}
+opset_import {
+  domain: ""
+  version: 20
+}
