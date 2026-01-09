@@ -302,7 +302,7 @@ def get_node_namespace(node: ir.Node) -> list[str]:
         if not ns:
             return []
         # Remove the last part of the node name to get the namespace
-        return _parse_namespace(node.name)[:-1]
+        return ns[:-1]
     return []
 
 
