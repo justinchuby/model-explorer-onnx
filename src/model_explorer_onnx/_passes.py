@@ -119,6 +119,7 @@ class AddCaptureNodePass(ir.passes.InPlacePass):
 
         for node in subgraph:
             # TODO: This is only looking one level deep. Nested subgraphs are not handled.
+            # To better handle this, we need to track scopes when traversing nodes.
             for inp in node.inputs:
                 if inp is not None and inp.graph is not subgraph:
                     # This is a closed value from outer scope
