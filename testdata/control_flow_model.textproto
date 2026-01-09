@@ -1,0 +1,288 @@
+ir_version: 10
+producer_name: "pytorch"
+producer_version: "2.8.0+cu128"
+graph {
+  node {
+    input: "x"
+    output: "sum_1"
+    name: "node_sum_1"
+    op_type: "ReduceSum"
+    attribute {
+      name: "noop_with_empty_axes"
+      i: 0
+      type: INT
+    }
+    attribute {
+      name: "keepdims"
+      i: 0
+      type: INT
+    }
+    metadata_props {
+      key: "namespace"
+      value: ": __main__.ControlFlowModel/sum_1: aten.sum.default"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.class_hierarchy"
+      value: "[\'__main__.ControlFlowModel\', \'aten.sum.default\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.fx_node"
+      value: "%sum_1 : [num_users=1] = call_function[target=torch.ops.aten.sum.default](args = (%x,), kwargs = {})"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.name_scopes"
+      value: "[\'\', \'sum_1\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.stack_trace"
+      value: "File \"/home/justinchu/dev/onnxscript/testtest.py\", line 12, in forward\n    return torch.cond(x.sum() > 0, times_2, neg, (x,))"
+    }
+  }
+  node {
+    input: "sum_1"
+    input: "scalar_tensor_default"
+    output: "gt"
+    name: "node_gt"
+    op_type: "Greater"
+    metadata_props {
+      key: "namespace"
+      value: ": __main__.ControlFlowModel/gt: aten.gt.Tensor"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.class_hierarchy"
+      value: "[\'__main__.ControlFlowModel\', \'aten.gt.Tensor\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.fx_node"
+      value: "%gt : [num_users=1] = call_function[target=torch.ops.aten.gt.Tensor](args = (%sum_1, %scalar_tensor_default), kwargs = {})"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.name_scopes"
+      value: "[\'\', \'gt\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.stack_trace"
+      value: "File \"/home/justinchu/dev/onnxscript/testtest.py\", line 12, in forward\n    return torch.cond(x.sum() > 0, times_2, neg, (x,))"
+    }
+  }
+  node {
+    input: "gt"
+    output: "getitem"
+    name: "node_cond__0"
+    op_type: "If"
+    attribute {
+      name: "then_branch"
+      g {
+        node {
+          input: "x"
+          input: "scalar_tensor_default_2"
+          output: "mul_true_graph_0"
+          name: "node_mul"
+          op_type: "Mul"
+          metadata_props {
+            key: "namespace"
+            value: "mul: aten.mul.Tensor"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.class_hierarchy"
+            value: "[\'aten.mul.Tensor\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.fx_node"
+            value: "%mul : [num_users=1] = call_function[target=torch.ops.aten.mul.Tensor](args = (%x, %scalar_tensor_default), kwargs = {})"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.name_scopes"
+            value: "[\'mul\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.stack_trace"
+            value: "File \"/home/justinchu/dev/onnxscript/testtest.py\", line 12, in forward\n    return torch.cond(x.sum() > 0, times_2, neg, (x,))\n  File \"<eval_with_key>.3\", line 9, in forward\n    cond = torch.ops.higher_order.cond(l_args_0_, cond_true_0, cond_false_0, (l_args_3_0_,));  l_args_0_ = cond_true_0 = cond_false_0 = l_args_3_0_ = None\n  File \"<eval_with_key>.0\", line 6, in forward\n    mul = l_args_3_0__1.mul(2);  l_args_3_0__1 = None"
+          }
+        }
+        name: "true_graph_0"
+        output {
+          name: "mul_true_graph_0"
+          type {
+            tensor_type {
+              elem_type: 1
+              shape {
+                dim {
+                  dim_value: 2
+                }
+              }
+            }
+          }
+        }
+      }
+      type: GRAPH
+    }
+    attribute {
+      name: "else_branch"
+      g {
+        node {
+          input: "x"
+          output: "neg_false_graph_0"
+          name: "node_neg"
+          op_type: "Neg"
+          metadata_props {
+            key: "namespace"
+            value: "neg: aten.neg.default"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.class_hierarchy"
+            value: "[\'aten.neg.default\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.fx_node"
+            value: "%neg : [num_users=1] = call_function[target=torch.ops.aten.neg.default](args = (%x,), kwargs = {})"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.name_scopes"
+            value: "[\'neg\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.stack_trace"
+            value: "File \"/home/justinchu/dev/onnxscript/testtest.py\", line 12, in forward\n    return torch.cond(x.sum() > 0, times_2, neg, (x,))\n  File \"<eval_with_key>.3\", line 9, in forward\n    cond = torch.ops.higher_order.cond(l_args_0_, cond_true_0, cond_false_0, (l_args_3_0_,));  l_args_0_ = cond_true_0 = cond_false_0 = l_args_3_0_ = None\n  File \"<eval_with_key>.1\", line 6, in forward\n    neg = l_args_3_0__1.neg();  l_args_3_0__1 = None"
+          }
+        }
+        name: "false_graph_0"
+        output {
+          name: "neg_false_graph_0"
+          type {
+            tensor_type {
+              elem_type: 1
+              shape {
+                dim {
+                  dim_value: 2
+                }
+              }
+            }
+          }
+        }
+      }
+      type: GRAPH
+    }
+    metadata_props {
+      key: "namespace"
+      value: ": __main__.ControlFlowModel/cond: cond"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.class_hierarchy"
+      value: "[\'__main__.ControlFlowModel\', \'cond\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.fx_node"
+      value: "%cond : [num_users=1] = call_function[target=torch.ops.higher_order.cond](args = (%gt, %true_graph_0, %false_graph_0, (%x,)), kwargs = {})"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.name_scopes"
+      value: "[\'\', \'cond\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.stack_trace"
+      value: "File \"/home/justinchu/dev/onnxscript/testtest.py\", line 12, in forward\n    return torch.cond(x.sum() > 0, times_2, neg, (x,))\n  File \"<eval_with_key>.3\", line 9, in forward\n    cond = torch.ops.higher_order.cond(l_args_0_, cond_true_0, cond_false_0, (l_args_3_0_,));  l_args_0_ = cond_true_0 = cond_false_0 = l_args_3_0_ = None"
+    }
+  }
+  name: "main_graph"
+  initializer {
+    data_type: 1
+    name: "scalar_tensor_default"
+    raw_data: "\000\000\000\000"
+  }
+  initializer {
+    data_type: 1
+    name: "scalar_tensor_default_2"
+    raw_data: "\000\000\000@"
+  }
+  input {
+    name: "x"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 2
+          }
+        }
+      }
+    }
+    metadata_props {
+      key: "pkg.torch.export.graph_signature.InputSpec.kind"
+      value: "USER_INPUT"
+    }
+    metadata_props {
+      key: "pkg.torch.export.graph_signature.InputSpec.persistent"
+      value: "None"
+    }
+  }
+  output {
+    name: "getitem"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 2
+          }
+        }
+      }
+    }
+    metadata_props {
+      key: "pkg.torch.export.graph_signature.OutputSpec.kind"
+      value: "USER_OUTPUT"
+    }
+  }
+  value_info {
+    name: "scalar_tensor_default"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+        }
+      }
+    }
+  }
+  value_info {
+    name: "scalar_tensor_default_2"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+        }
+      }
+    }
+  }
+  value_info {
+    name: "sum_1"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+        }
+      }
+    }
+  }
+  value_info {
+    name: "gt"
+    type {
+      tensor_type {
+        elem_type: 9
+        shape {
+        }
+      }
+    }
+  }
+  metadata_props {
+    key: "pkg.torch.export.ExportedProgram.graph_signature"
+    value: "\n# inputs\nx: USER_INPUT\n\n# outputs\ngetitem: USER_OUTPUT\n"
+  }
+  metadata_props {
+    key: "pkg.torch.export.ExportedProgram.range_constraints"
+    value: "{}"
+  }
+}
+opset_import {
+  domain: ""
+  version: 18
+}

@@ -1,0 +1,708 @@
+ir_version: 10
+producer_name: "pytorch"
+producer_version: "2.9.0"
+graph {
+  node {
+    output: "val_0"
+    name: "node_Constant_0"
+    op_type: "Constant"
+    attribute {
+      name: "value"
+      t {
+        data_type: 7
+        raw_data: "\001\000\000\000\000\000\000\000"
+      }
+      type: TENSOR
+    }
+    metadata_props {
+      key: "namespace"
+      value: ": test_small_models_e2e.DynamoExporterTest.test_onnx_export_control_flow_multi_outputs.<locals>.CondModel/ones_like: aten.ones_like.default"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.class_hierarchy"
+      value: "[\'test_small_models_e2e.DynamoExporterTest.test_onnx_export_control_flow_multi_outputs.<locals>.CondModel\', \'aten.ones_like.default\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.fx_node"
+      value: "%ones_like : [num_users=2] = call_function[target=torch.ops.aten.ones_like.default](args = (%x,), kwargs = {pin_memory: False})"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.name_scopes"
+      value: "[\'\', \'ones_like\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.stack_trace"
+      value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 142, in forward\n    z = torch.ones_like(x)"
+    }
+  }
+  node {
+    input: "val_0"
+    input: "x"
+    output: "val_1"
+    name: "node_CastLike_1"
+    op_type: "CastLike"
+    metadata_props {
+      key: "namespace"
+      value: ": test_small_models_e2e.DynamoExporterTest.test_onnx_export_control_flow_multi_outputs.<locals>.CondModel/ones_like: aten.ones_like.default"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.class_hierarchy"
+      value: "[\'test_small_models_e2e.DynamoExporterTest.test_onnx_export_control_flow_multi_outputs.<locals>.CondModel\', \'aten.ones_like.default\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.fx_node"
+      value: "%ones_like : [num_users=2] = call_function[target=torch.ops.aten.ones_like.default](args = (%x,), kwargs = {pin_memory: False})"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.name_scopes"
+      value: "[\'\', \'ones_like\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.stack_trace"
+      value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 142, in forward\n    z = torch.ones_like(x)"
+    }
+  }
+  node {
+    input: "x"
+    output: "val_2"
+    name: "node_Shape_2"
+    op_type: "Shape"
+    attribute {
+      name: "start"
+      i: 0
+      type: INT
+    }
+    metadata_props {
+      key: "namespace"
+      value: ": test_small_models_e2e.DynamoExporterTest.test_onnx_export_control_flow_multi_outputs.<locals>.CondModel/ones_like: aten.ones_like.default"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.class_hierarchy"
+      value: "[\'test_small_models_e2e.DynamoExporterTest.test_onnx_export_control_flow_multi_outputs.<locals>.CondModel\', \'aten.ones_like.default\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.fx_node"
+      value: "%ones_like : [num_users=2] = call_function[target=torch.ops.aten.ones_like.default](args = (%x,), kwargs = {pin_memory: False})"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.name_scopes"
+      value: "[\'\', \'ones_like\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.stack_trace"
+      value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 142, in forward\n    z = torch.ones_like(x)"
+    }
+  }
+  node {
+    input: "val_1"
+    input: "val_2"
+    output: "ones_like"
+    name: "node_ones_like"
+    op_type: "Expand"
+    metadata_props {
+      key: "namespace"
+      value: ": test_small_models_e2e.DynamoExporterTest.test_onnx_export_control_flow_multi_outputs.<locals>.CondModel/ones_like: aten.ones_like.default"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.class_hierarchy"
+      value: "[\'test_small_models_e2e.DynamoExporterTest.test_onnx_export_control_flow_multi_outputs.<locals>.CondModel\', \'aten.ones_like.default\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.fx_node"
+      value: "%ones_like : [num_users=2] = call_function[target=torch.ops.aten.ones_like.default](args = (%x,), kwargs = {pin_memory: False})"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.name_scopes"
+      value: "[\'\', \'ones_like\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.stack_trace"
+      value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 142, in forward\n    z = torch.ones_like(x)"
+    }
+  }
+  node {
+    input: "x"
+    output: "sum_1"
+    name: "node_sum_1"
+    op_type: "ReduceSum"
+    attribute {
+      name: "noop_with_empty_axes"
+      i: 0
+      type: INT
+    }
+    attribute {
+      name: "keepdims"
+      i: 0
+      type: INT
+    }
+    metadata_props {
+      key: "namespace"
+      value: ": test_small_models_e2e.DynamoExporterTest.test_onnx_export_control_flow_multi_outputs.<locals>.CondModel/sum_1: aten.sum.default"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.class_hierarchy"
+      value: "[\'test_small_models_e2e.DynamoExporterTest.test_onnx_export_control_flow_multi_outputs.<locals>.CondModel\', \'aten.sum.default\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.fx_node"
+      value: "%sum_1 : [num_users=1] = call_function[target=torch.ops.aten.sum.default](args = (%x,), kwargs = {})"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.name_scopes"
+      value: "[\'\', \'sum_1\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.stack_trace"
+      value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 154, in forward\n    x = torch.cond(x.sum() > 0, true_fn, false_fn, (x, z))"
+    }
+  }
+  node {
+    output: "val_3"
+    name: "node_Constant_3"
+    op_type: "Constant"
+    attribute {
+      name: "value"
+      t {
+        data_type: 7
+        raw_data: "\000\000\000\000\000\000\000\000"
+      }
+      type: TENSOR
+    }
+    metadata_props {
+      key: "namespace"
+      value: ": test_small_models_e2e.DynamoExporterTest.test_onnx_export_control_flow_multi_outputs.<locals>.CondModel/gt: aten.gt.Scalar"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.class_hierarchy"
+      value: "[\'test_small_models_e2e.DynamoExporterTest.test_onnx_export_control_flow_multi_outputs.<locals>.CondModel\', \'aten.gt.Scalar\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.fx_node"
+      value: "%gt : [num_users=1] = call_function[target=torch.ops.aten.gt.Scalar](args = (%sum_1, 0), kwargs = {})"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.name_scopes"
+      value: "[\'\', \'gt\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.stack_trace"
+      value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 154, in forward\n    x = torch.cond(x.sum() > 0, true_fn, false_fn, (x, z))"
+    }
+  }
+  node {
+    input: "sum_1"
+    input: "val_3"
+    output: "gt"
+    name: "node_gt"
+    op_type: "Greater"
+    metadata_props {
+      key: "namespace"
+      value: ": test_small_models_e2e.DynamoExporterTest.test_onnx_export_control_flow_multi_outputs.<locals>.CondModel/gt: aten.gt.Scalar"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.class_hierarchy"
+      value: "[\'test_small_models_e2e.DynamoExporterTest.test_onnx_export_control_flow_multi_outputs.<locals>.CondModel\', \'aten.gt.Scalar\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.fx_node"
+      value: "%gt : [num_users=1] = call_function[target=torch.ops.aten.gt.Scalar](args = (%sum_1, 0), kwargs = {})"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.name_scopes"
+      value: "[\'\', \'gt\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.stack_trace"
+      value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 154, in forward\n    x = torch.cond(x.sum() > 0, true_fn, false_fn, (x, z))"
+    }
+  }
+  node {
+    input: "gt"
+    output: "getitem"
+    output: "getitem_1"
+    name: "node_cond__1"
+    op_type: "If"
+    attribute {
+      name: "then_branch"
+      g {
+        node {
+          input: "x"
+          output: "convert_element_type_default"
+          name: "node_convert_element_type_default"
+          op_type: "Cast"
+          attribute {
+            name: "to"
+            i: 1
+            type: INT
+          }
+          metadata_props {
+            key: "namespace"
+            value: "convert_element_type_default: prims.convert_element_type.default"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.class_hierarchy"
+            value: "[\'prims.convert_element_type.default\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.fx_node"
+            value: "%convert_element_type_default : [num_users=1] = call_function[target=torch.ops.prims.convert_element_type.default](args = (%x,), kwargs = {dtype: torch.float32})"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.name_scopes"
+            value: "[\'convert_element_type_default\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.stack_trace"
+            value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 154, in forward\n    x = torch.cond(x.sum() > 0, true_fn, false_fn, (x, z))\n  File \"<eval_with_key>.3\", line 10, in forward\n    cond = torch.ops.higher_order.cond(l_args_0_, cond_true_0, cond_false_0, (l_args_3_0_, l_args_3_1_));  l_args_0_ = cond_true_0 = cond_false_0 = l_args_3_0_ = l_args_3_1_ = None\n  File \"<eval_with_key>.0\", line 7, in forward\n    x = l_args_3_0__1 + 1.0;  l_args_3_0__1 = None"
+          }
+        }
+        node {
+          output: "val_0_2"
+          name: "node_Constant_0_2"
+          op_type: "Constant"
+          attribute {
+            name: "value"
+            t {
+              data_type: 1
+              raw_data: "\000\000\200?"
+            }
+            type: TENSOR
+          }
+          metadata_props {
+            key: "namespace"
+            value: "add: aten.add.Tensor"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.class_hierarchy"
+            value: "[\'aten.add.Tensor\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.fx_node"
+            value: "%add : [num_users=1] = call_function[target=torch.ops.aten.add.Tensor](args = (%convert_element_type_default, 1.0), kwargs = {})"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.name_scopes"
+            value: "[\'add\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.stack_trace"
+            value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 154, in forward\n    x = torch.cond(x.sum() > 0, true_fn, false_fn, (x, z))\n  File \"<eval_with_key>.3\", line 10, in forward\n    cond = torch.ops.higher_order.cond(l_args_0_, cond_true_0, cond_false_0, (l_args_3_0_, l_args_3_1_));  l_args_0_ = cond_true_0 = cond_false_0 = l_args_3_0_ = l_args_3_1_ = None\n  File \"<eval_with_key>.0\", line 7, in forward\n    x = l_args_3_0__1 + 1.0;  l_args_3_0__1 = None"
+          }
+        }
+        node {
+          input: "convert_element_type_default"
+          input: "val_0_2"
+          output: "add_true_graph_0"
+          name: "node_add"
+          op_type: "Add"
+          metadata_props {
+            key: "namespace"
+            value: "add: aten.add.Tensor"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.class_hierarchy"
+            value: "[\'aten.add.Tensor\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.fx_node"
+            value: "%add : [num_users=1] = call_function[target=torch.ops.aten.add.Tensor](args = (%convert_element_type_default, 1.0), kwargs = {})"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.name_scopes"
+            value: "[\'add\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.stack_trace"
+            value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 154, in forward\n    x = torch.cond(x.sum() > 0, true_fn, false_fn, (x, z))\n  File \"<eval_with_key>.3\", line 10, in forward\n    cond = torch.ops.higher_order.cond(l_args_0_, cond_true_0, cond_false_0, (l_args_3_0_, l_args_3_1_));  l_args_0_ = cond_true_0 = cond_false_0 = l_args_3_0_ = l_args_3_1_ = None\n  File \"<eval_with_key>.0\", line 7, in forward\n    x = l_args_3_0__1 + 1.0;  l_args_3_0__1 = None"
+          }
+        }
+        node {
+          input: "ones_like"
+          output: "convert_element_type_default_1"
+          name: "node_convert_element_type_default_1"
+          op_type: "Cast"
+          attribute {
+            name: "to"
+            i: 1
+            type: INT
+          }
+          metadata_props {
+            key: "namespace"
+            value: "convert_element_type_default_1: prims.convert_element_type.default"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.class_hierarchy"
+            value: "[\'prims.convert_element_type.default\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.fx_node"
+            value: "%convert_element_type_default_1 : [num_users=1] = call_function[target=torch.ops.prims.convert_element_type.default](args = (%ones_like,), kwargs = {dtype: torch.float32})"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.name_scopes"
+            value: "[\'convert_element_type_default_1\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.stack_trace"
+            value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 154, in forward\n    x = torch.cond(x.sum() > 0, true_fn, false_fn, (x, z))\n  File \"<eval_with_key>.3\", line 10, in forward\n    cond = torch.ops.higher_order.cond(l_args_0_, cond_true_0, cond_false_0, (l_args_3_0_, l_args_3_1_));  l_args_0_ = cond_true_0 = cond_false_0 = l_args_3_0_ = l_args_3_1_ = None\n  File \"<eval_with_key>.0\", line 8, in forward\n    z = l_args_3_1__1 * 1.0;  l_args_3_1__1 = None"
+          }
+        }
+        node {
+          input: "convert_element_type_default_1"
+          input: "val_0_2"
+          output: "mul_true_graph_0"
+          name: "node_mul"
+          op_type: "Mul"
+          metadata_props {
+            key: "namespace"
+            value: "mul: aten.mul.Tensor"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.class_hierarchy"
+            value: "[\'aten.mul.Tensor\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.fx_node"
+            value: "%mul : [num_users=1] = call_function[target=torch.ops.aten.mul.Tensor](args = (%convert_element_type_default_1, 1.0), kwargs = {})"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.name_scopes"
+            value: "[\'mul\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.stack_trace"
+            value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 154, in forward\n    x = torch.cond(x.sum() > 0, true_fn, false_fn, (x, z))\n  File \"<eval_with_key>.3\", line 10, in forward\n    cond = torch.ops.higher_order.cond(l_args_0_, cond_true_0, cond_false_0, (l_args_3_0_, l_args_3_1_));  l_args_0_ = cond_true_0 = cond_false_0 = l_args_3_0_ = l_args_3_1_ = None\n  File \"<eval_with_key>.0\", line 8, in forward\n    z = l_args_3_1__1 * 1.0;  l_args_3_1__1 = None"
+          }
+        }
+        name: "true_graph_0"
+        output {
+          name: "add_true_graph_0"
+        }
+        output {
+          name: "mul_true_graph_0"
+        }
+      }
+      type: GRAPH
+    }
+    attribute {
+      name: "else_branch"
+      g {
+        node {
+          input: "x"
+          output: "convert_element_type_default_2"
+          name: "node_convert_element_type_default_2"
+          op_type: "Cast"
+          attribute {
+            name: "to"
+            i: 1
+            type: INT
+          }
+          metadata_props {
+            key: "namespace"
+            value: "convert_element_type_default: prims.convert_element_type.default"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.class_hierarchy"
+            value: "[\'prims.convert_element_type.default\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.fx_node"
+            value: "%convert_element_type_default : [num_users=1] = call_function[target=torch.ops.prims.convert_element_type.default](args = (%x,), kwargs = {dtype: torch.float32})"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.name_scopes"
+            value: "[\'convert_element_type_default\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.stack_trace"
+            value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 154, in forward\n    x = torch.cond(x.sum() > 0, true_fn, false_fn, (x, z))\n  File \"<eval_with_key>.3\", line 10, in forward\n    cond = torch.ops.higher_order.cond(l_args_0_, cond_true_0, cond_false_0, (l_args_3_0_, l_args_3_1_));  l_args_0_ = cond_true_0 = cond_false_0 = l_args_3_0_ = l_args_3_1_ = None\n  File \"<eval_with_key>.1\", line 7, in forward\n    x = l_args_3_0__1 - 1.0;  l_args_3_0__1 = None"
+          }
+        }
+        node {
+          output: "val_0_3"
+          name: "node_Constant_0_3"
+          op_type: "Constant"
+          attribute {
+            name: "value"
+            t {
+              data_type: 1
+              raw_data: "\000\000\200?"
+            }
+            type: TENSOR
+          }
+          metadata_props {
+            key: "namespace"
+            value: "sub: aten.sub.Tensor"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.class_hierarchy"
+            value: "[\'aten.sub.Tensor\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.fx_node"
+            value: "%sub : [num_users=1] = call_function[target=torch.ops.aten.sub.Tensor](args = (%convert_element_type_default, 1.0), kwargs = {})"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.name_scopes"
+            value: "[\'sub\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.stack_trace"
+            value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 154, in forward\n    x = torch.cond(x.sum() > 0, true_fn, false_fn, (x, z))\n  File \"<eval_with_key>.3\", line 10, in forward\n    cond = torch.ops.higher_order.cond(l_args_0_, cond_true_0, cond_false_0, (l_args_3_0_, l_args_3_1_));  l_args_0_ = cond_true_0 = cond_false_0 = l_args_3_0_ = l_args_3_1_ = None\n  File \"<eval_with_key>.1\", line 7, in forward\n    x = l_args_3_0__1 - 1.0;  l_args_3_0__1 = None"
+          }
+        }
+        node {
+          input: "convert_element_type_default_2"
+          input: "val_0_3"
+          output: "sub_false_graph_0"
+          name: "node_sub"
+          op_type: "Sub"
+          metadata_props {
+            key: "namespace"
+            value: "sub: aten.sub.Tensor"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.class_hierarchy"
+            value: "[\'aten.sub.Tensor\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.fx_node"
+            value: "%sub : [num_users=1] = call_function[target=torch.ops.aten.sub.Tensor](args = (%convert_element_type_default, 1.0), kwargs = {})"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.name_scopes"
+            value: "[\'sub\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.stack_trace"
+            value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 154, in forward\n    x = torch.cond(x.sum() > 0, true_fn, false_fn, (x, z))\n  File \"<eval_with_key>.3\", line 10, in forward\n    cond = torch.ops.higher_order.cond(l_args_0_, cond_true_0, cond_false_0, (l_args_3_0_, l_args_3_1_));  l_args_0_ = cond_true_0 = cond_false_0 = l_args_3_0_ = l_args_3_1_ = None\n  File \"<eval_with_key>.1\", line 7, in forward\n    x = l_args_3_0__1 - 1.0;  l_args_3_0__1 = None"
+          }
+        }
+        node {
+          input: "ones_like"
+          output: "convert_element_type_default_1_2"
+          name: "node_convert_element_type_default_1_2"
+          op_type: "Cast"
+          attribute {
+            name: "to"
+            i: 1
+            type: INT
+          }
+          metadata_props {
+            key: "namespace"
+            value: "convert_element_type_default_1: prims.convert_element_type.default"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.class_hierarchy"
+            value: "[\'prims.convert_element_type.default\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.fx_node"
+            value: "%convert_element_type_default_1 : [num_users=1] = call_function[target=torch.ops.prims.convert_element_type.default](args = (%ones_like,), kwargs = {dtype: torch.float32})"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.name_scopes"
+            value: "[\'convert_element_type_default_1\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.stack_trace"
+            value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 154, in forward\n    x = torch.cond(x.sum() > 0, true_fn, false_fn, (x, z))\n  File \"<eval_with_key>.3\", line 10, in forward\n    cond = torch.ops.higher_order.cond(l_args_0_, cond_true_0, cond_false_0, (l_args_3_0_, l_args_3_1_));  l_args_0_ = cond_true_0 = cond_false_0 = l_args_3_0_ = l_args_3_1_ = None\n  File \"<eval_with_key>.1\", line 8, in forward\n    z = l_args_3_1__1 * 0.0;  l_args_3_1__1 = None"
+          }
+        }
+        node {
+          output: "val_1_2"
+          name: "node_Constant_1"
+          op_type: "Constant"
+          attribute {
+            name: "value"
+            t {
+              data_type: 1
+              raw_data: "\000\000\000\000"
+            }
+            type: TENSOR
+          }
+          metadata_props {
+            key: "namespace"
+            value: "mul: aten.mul.Tensor"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.class_hierarchy"
+            value: "[\'aten.mul.Tensor\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.fx_node"
+            value: "%mul : [num_users=1] = call_function[target=torch.ops.aten.mul.Tensor](args = (%convert_element_type_default_1, 0.0), kwargs = {})"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.name_scopes"
+            value: "[\'mul\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.stack_trace"
+            value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 154, in forward\n    x = torch.cond(x.sum() > 0, true_fn, false_fn, (x, z))\n  File \"<eval_with_key>.3\", line 10, in forward\n    cond = torch.ops.higher_order.cond(l_args_0_, cond_true_0, cond_false_0, (l_args_3_0_, l_args_3_1_));  l_args_0_ = cond_true_0 = cond_false_0 = l_args_3_0_ = l_args_3_1_ = None\n  File \"<eval_with_key>.1\", line 8, in forward\n    z = l_args_3_1__1 * 0.0;  l_args_3_1__1 = None"
+          }
+        }
+        node {
+          input: "convert_element_type_default_1_2"
+          input: "val_1_2"
+          output: "mul_false_graph_0"
+          name: "node_mul_2"
+          op_type: "Mul"
+          metadata_props {
+            key: "namespace"
+            value: "mul: aten.mul.Tensor"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.class_hierarchy"
+            value: "[\'aten.mul.Tensor\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.fx_node"
+            value: "%mul : [num_users=1] = call_function[target=torch.ops.aten.mul.Tensor](args = (%convert_element_type_default_1, 0.0), kwargs = {})"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.name_scopes"
+            value: "[\'mul\']"
+          }
+          metadata_props {
+            key: "pkg.torch.onnx.stack_trace"
+            value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 154, in forward\n    x = torch.cond(x.sum() > 0, true_fn, false_fn, (x, z))\n  File \"<eval_with_key>.3\", line 10, in forward\n    cond = torch.ops.higher_order.cond(l_args_0_, cond_true_0, cond_false_0, (l_args_3_0_, l_args_3_1_));  l_args_0_ = cond_true_0 = cond_false_0 = l_args_3_0_ = l_args_3_1_ = None\n  File \"<eval_with_key>.1\", line 8, in forward\n    z = l_args_3_1__1 * 0.0;  l_args_3_1__1 = None"
+          }
+        }
+        name: "false_graph_0"
+        output {
+          name: "sub_false_graph_0"
+        }
+        output {
+          name: "mul_false_graph_0"
+        }
+      }
+      type: GRAPH
+    }
+    metadata_props {
+      key: "namespace"
+      value: ": test_small_models_e2e.DynamoExporterTest.test_onnx_export_control_flow_multi_outputs.<locals>.CondModel/cond: cond"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.class_hierarchy"
+      value: "[\'test_small_models_e2e.DynamoExporterTest.test_onnx_export_control_flow_multi_outputs.<locals>.CondModel\', \'cond\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.fx_node"
+      value: "%cond : [num_users=2] = call_function[target=torch.ops.higher_order.cond](args = (%gt, %true_graph_0, %false_graph_0, (%x, %ones_like)), kwargs = {})"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.name_scopes"
+      value: "[\'\', \'cond\']"
+    }
+    metadata_props {
+      key: "pkg.torch.onnx.stack_trace"
+      value: "File \"/Users/justinc/Documents/GitHub/pytorch/test/onnx/exporter/test_small_models_e2e.py\", line 154, in forward\n    x = torch.cond(x.sum() > 0, true_fn, false_fn, (x, z))\n  File \"<eval_with_key>.3\", line 10, in forward\n    cond = torch.ops.higher_order.cond(l_args_0_, cond_true_0, cond_false_0, (l_args_3_0_, l_args_3_1_));  l_args_0_ = cond_true_0 = cond_false_0 = l_args_3_0_ = l_args_3_1_ = None"
+    }
+  }
+  name: "main_graph"
+  input {
+    name: "x"
+    type {
+      tensor_type {
+        elem_type: 7
+        shape {
+          dim {
+            dim_value: 2
+          }
+        }
+      }
+    }
+    metadata_props {
+      key: "pkg.torch.export.graph_signature.InputSpec.kind"
+      value: "USER_INPUT"
+    }
+    metadata_props {
+      key: "pkg.torch.export.graph_signature.InputSpec.persistent"
+      value: "None"
+    }
+  }
+  output {
+    name: "getitem"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 2
+          }
+        }
+      }
+    }
+    metadata_props {
+      key: "pkg.torch.export.graph_signature.OutputSpec.kind"
+      value: "USER_OUTPUT"
+    }
+  }
+  output {
+    name: "getitem_1"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+          dim {
+            dim_value: 2
+          }
+        }
+      }
+    }
+    metadata_props {
+      key: "pkg.torch.export.graph_signature.OutputSpec.kind"
+      value: "USER_OUTPUT"
+    }
+  }
+  output {
+    name: "ones_like"
+    type {
+      tensor_type {
+        elem_type: 7
+        shape {
+          dim {
+            dim_value: 2
+          }
+        }
+      }
+    }
+    metadata_props {
+      key: "pkg.torch.export.graph_signature.OutputSpec.kind"
+      value: "USER_OUTPUT"
+    }
+  }
+  value_info {
+    name: "sum_1"
+    type {
+      tensor_type {
+        elem_type: 7
+        shape {
+        }
+      }
+    }
+  }
+  value_info {
+    name: "gt"
+    type {
+      tensor_type {
+        elem_type: 9
+        shape {
+        }
+      }
+    }
+  }
+  metadata_props {
+    key: "pkg.torch.export.ExportedProgram.graph_signature"
+    value: "\n# inputs\nx: USER_INPUT\n\n# outputs\ngetitem: USER_OUTPUT\ngetitem_1: USER_OUTPUT\nones_like: USER_OUTPUT\n"
+  }
+  metadata_props {
+    key: "pkg.torch.export.ExportedProgram.range_constraints"
+    value: "{}"
+  }
+}
+opset_import {
+  domain: ""
+  version: 20
+}

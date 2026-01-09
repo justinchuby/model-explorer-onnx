@@ -5,6 +5,7 @@ import logging
 from typing import Any, Literal, Sequence
 
 import model_explorer
+from model_explorer_onnx import _passes
 import numpy as np
 import onnx
 import onnx_ir as ir
@@ -339,7 +340,7 @@ def create_node(
     add_outputs_metadata(onnx_node, node, opset_version=opset_version)
     if onnx_node.op_identifier() in all_function_ids:
         node.subgraphIds.append(get_function_graph_name(onnx_node.op_identifier()))
-    for i, attr in enumerate(onnx_node.attributes.values()):
+    for _i, attr in enumerate(onnx_node.attributes.values()):
         if attr.type == ir.AttributeType.GRAPH:
             # The attribute is a subgraph. Add the subgraph ID to the node.
             node.subgraphIds.append(get_subgraph_name(onnx_node, attr.name))
@@ -569,6 +570,7 @@ class ONNXAdapter(model_explorer.Adapter):
 
         # Convert to ONNX IR
         model = ir.serde.deserialize_model(onnx_model)
+        _passes.process_model(model)
         all_function_ids = set(model.functions)
         graphs = []
         opset_version = model.opset_imports.get("")
