@@ -56,11 +56,14 @@ class EmbedIfPass(ir.passes.InPlacePass):
             last_node = None
             for attr_name, subgraph in subgraphs:
                 # Assign namespace to all nodes in the subgraph
-                for sub_node in subgraph.all_nodes():
+                for sub_node in subgraph:
                     sub_namespace = get_node_namespace(sub_node)
                     sub_node.metadata_props["namespace"] = "/".join(
                         (*parent_name_space, attr_name, *sub_namespace)
                     )
+                    sub_node.name = f"{node.name}/{attr_name}/{sub_node.name}"
+                    for output in sub_node.outputs:
+                        output.name = f"{sub_node.name}/{output.name}"
                 # Remove the attribute from the node
                 node.attributes.pop(attr_name)
                 outputs.extend(subgraph.outputs)
