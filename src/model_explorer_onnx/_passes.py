@@ -4,35 +4,6 @@ import onnx_ir as ir
 import onnx_ir.passes.common as common_passes
 
 
-class AssignUniqueGraphNamesPass(ir.passes.InPlacePass):
-    """Assign unique names to graphs and nodes in the model."""
-
-    def _assign_unique_graph_name(
-        self, name: str | None, existing_names: set[str]
-    ) -> str:
-        if not name:
-            base_name = "graph"
-        else:
-            base_name = name
-
-        unique_name = base_name
-        index = 1
-        while unique_name in existing_names:
-            unique_name = f"{base_name}_{index}"
-            index += 1
-        existing_names.add(unique_name)
-        return unique_name
-
-    def call(self, model: ir.Model) -> ir.passes.PassResult:
-        all_graph_names = set()
-        modified = False
-        for graph in model.graphs():
-            if not graph.name or graph.name in all_graph_names:
-                graph.name = self._assign_unique_graph_name(graph.name, all_graph_names)
-                modified = True
-        return ir.passes.PassResult(model, modified=modified)
-
-
 def _parse_namespace(node_name: str) -> list[str]:
     """Parse the namespace from the node name if it is in the format of /namespace/node_name."""
     split = node_name.lstrip("/").rstrip("/").split("/")
@@ -42,7 +13,7 @@ def _parse_namespace(node_name: str) -> list[str]:
 def get_node_namespace(node: ir.Node) -> list[str]:
     """Get the namespace from the node."""
     if (metadata_namespace := node.metadata_props.get("namespace")) is not None:
-        return _parse_namespace(metadata_namespace)
+        return metadata_namespace.split("/")
     return []
 
 
@@ -75,7 +46,7 @@ class EmbedIfPass(ir.passes.InPlacePass):
             # Handle only single graph attributes only
             subgraphs: list[tuple[str, ir.Graph]] = []
             parent_name_space = get_node_namespace(node)
-            parent_name_space.append(f"{node.op_type}<{node.name}>")
+            parent_name_space.append(f"{node.op_type} <{node.name}>")
             node.metadata_props["namespace"] = "/".join(parent_name_space)
             for name, attr in node.attributes.items():
                 if attr.type == ir.AttributeType.GRAPH:
@@ -102,7 +73,7 @@ class EmbedIfPass(ir.passes.InPlacePass):
             assert last_node is not None
             # Create a phi node to merge outputs
             phi_node = ir.node(
-                "Phi",
+                "(Phi)",
                 inputs=[out for out in outputs],
                 num_outputs=len(node.outputs),
             )
@@ -113,7 +84,7 @@ class EmbedIfPass(ir.passes.InPlacePass):
                 phi_output.name = output.name
                 phi_output.type = output.type
                 phi_output.shape = output.shape
-                output.replace_all_uses_with(phi_output)
+                output.replace_all_uses_with(phi_output, replace_graph_outputs=True)
                 output.name = f"{output.name}_if_"
         return ir.passes.PassResult(model, modified=modified)
 
@@ -123,7 +94,6 @@ def process_model(model: ir.Model) -> None:
     passes = ir.passes.PassManager(
         [
             common_passes.NameFixPass(),
-            AssignUniqueGraphNamesPass(),
             AssignNodeNamespacePass(),
             EmbedIfPass(),
         ]
