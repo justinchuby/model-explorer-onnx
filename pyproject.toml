@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "model-explorer-onnx"
-version = "0.3.9"
+version = "0.4.0"
 description = "Adapter for ai-edge-model-explorer to support ONNX models"
 authors = [{ name = "Justin Chu", email = "justinchu@microsoft.com" }]
 readme = "README.md"
@@ -23,7 +23,7 @@ dependencies = [
   "ai-edge-model-explorer>=0.1.10",
   "numpy",
   "onnx",
-  "onnx_ir>=0.1.7",
+  "onnx_ir>=0.1.13",
 ]
 
 [project.scripts]
