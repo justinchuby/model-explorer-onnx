@@ -36,9 +36,7 @@ condition = ir.Value(
 
 # Node in main graph that uses the shared initializer
 # This multiplies the input by the shared weight
-mul_node_main = ir.node(
-    "Mul", inputs=[input_value, shared_initializer], num_outputs=1
-)
+mul_node_main = ir.node("Mul", inputs=[input_value, shared_initializer], num_outputs=1)
 mul_node_main.outputs[0].name = "main_output"
 mul_node_main.outputs[0].dtype = ir.DataType.FLOAT
 mul_node_main.outputs[0].shape = ir.Shape((2,))
@@ -110,8 +108,12 @@ print("=" * 80)
 print(f"Main graph nodes: {len(main_graph)}")
 print(f"Main graph initializers: {list(main_graph.initializers.keys())}")
 print(f"\nThen branch nodes: {len(then_graph)}")
-print(f"Then branch uses shared_initializer: {shared_initializer in then_add_node.inputs}")
-print(f"Then branch uses main_output: {mul_node_main.outputs[0] in then_add_node.inputs}")
+print(
+    f"Then branch uses shared_initializer: {shared_initializer in then_add_node.inputs}"
+)
+print(
+    f"Then branch uses main_output: {mul_node_main.outputs[0] in then_add_node.inputs}"
+)
 
 # Save to file
 proto = ir.to_proto(model)

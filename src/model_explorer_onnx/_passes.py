@@ -120,10 +120,12 @@ class EmbedIfPass(ir.passes.InPlacePass):
 
 def process_model(model: ir.Model) -> None:
     """Process the model with the defined passes."""
-    passes = ir.passes.PassManager([
-        common_passes.NameFixPass(),
-        AssignUniqueGraphNamesPass(),
-        AssignNodeNamespacePass(),
-        EmbedIfPass(),
-    ])
+    passes = ir.passes.PassManager(
+        [
+            common_passes.NameFixPass(),
+            AssignUniqueGraphNamesPass(),
+            AssignNodeNamespacePass(),
+            EmbedIfPass(),
+        ]
+    )
     passes(model)
