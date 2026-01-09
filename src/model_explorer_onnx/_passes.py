@@ -43,11 +43,11 @@ class EmbedIfPass(ir.passes.InPlacePass):
             if node.op_type != "If" or node.domain != "":
                 continue
             modified = True
-            # Handle only single graph attributes only
+            # Handle single graph attributes only
             subgraphs: list[tuple[str, ir.Graph]] = []
-            parent_name_space = get_node_namespace(node)
-            parent_name_space.append(f"{node.op_type} <{node.name}>")
-            node.metadata_props["namespace"] = "/".join(parent_name_space)
+            parent_namespace = get_node_namespace(node)
+            parent_namespace.append(f"{node.op_type} <{node.name}>")
+            node.metadata_props["namespace"] = "/".join(parent_namespace)
             for name, attr in node.attributes.items():
                 if attr.type == ir.AttributeType.GRAPH:
                     subgraphs.append((name, attr.as_graph()))
@@ -59,7 +59,7 @@ class EmbedIfPass(ir.passes.InPlacePass):
                 for sub_node in subgraph:
                     sub_namespace = get_node_namespace(sub_node)
                     sub_node.metadata_props["namespace"] = "/".join(
-                        (*parent_name_space, attr_name, *sub_namespace)
+                        (*parent_namespace, attr_name, *sub_namespace)
                     )
                     sub_node.name = f"{node.name}/{attr_name}/{sub_node.name}"
                     for output in sub_node.outputs:
