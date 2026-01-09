@@ -76,7 +76,8 @@ class EmbedIfPass(ir.passes.InPlacePass):
                     sub_node.name = f"{node.name}/{attr_name}/{sub_node.name}"
                     for idx, output in enumerate(sub_node.outputs):
                         output.name = f"{node.name}/{attr_name}/{output.name}"
-                        output.metadata_props["graph_output_index"] = str(idx)
+                for idx, g_output in enumerate(subgraph.outputs):
+                    g_output.metadata_props["graph_output_index"] = str(idx)
                 # Remove the attribute from the node
                 node.attributes.pop(attr_name)
                 outputs.extend(subgraph.outputs)
