@@ -117,7 +117,7 @@ class AddCaptureNodePass(ir.passes.InPlacePass):
 
         for node in subgraph:
             for inp in node.inputs:
-                if inp and inp.name not in subgraph_input_names:
+                if inp is not None and inp.graph is not subgraph:
                     # This is a closed value from outer scope
                     used_values.append(inp)
 
