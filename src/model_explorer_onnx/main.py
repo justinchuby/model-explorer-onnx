@@ -648,5 +648,4 @@ class ONNXAdapter(model_explorer.Adapter):
             assert function_graph is not None
             graphs.append(function_graph)
 
-        print(graphs)
         return {"graphs": graphs}
