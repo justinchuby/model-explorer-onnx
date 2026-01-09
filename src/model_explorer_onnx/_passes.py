@@ -63,7 +63,7 @@ class EmbedIfPass(ir.passes.InPlacePass):
                     )
                     sub_node.name = f"{node.name}/{attr_name}/{sub_node.name}"
                     for output in sub_node.outputs:
-                        output.name = f"{sub_node.name}/{output.name}"
+                        output.name = f"{node.name}/{attr_name}/{output.name}"
                 # Remove the attribute from the node
                 node.attributes.pop(attr_name)
                 outputs.extend(subgraph.outputs)
