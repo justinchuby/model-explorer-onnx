@@ -35,7 +35,7 @@ class AssignNodeNamespacePass(ir.passes.InPlacePass):
             if node.name:
                 # Remove the last part of the node name to get the namespace
                 node.metadata_props["namespace"] = "/".join(
-                    _parse_namespace(node.name)[:-1]
+                    get_node_namespace(node)
                 )
                 modified = True
         return ir.passes.PassResult(model, modified=modified)
