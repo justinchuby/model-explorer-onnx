@@ -290,7 +290,7 @@ def create_op_label(domain: str, op_type: str) -> str:
 def _parse_namespace(node_name: str) -> list[str]:
     """Parse the namespace from the node name if it is in the format of /namespace/node_name."""
     split = node_name.lstrip("/").rstrip("/").split("/")
-    return [ns or "<anonymous>" for ns in split]
+    return [ns for ns in split if ns != ""]
 
 
 def get_node_namespace(node: ir.Node) -> list[str]:
@@ -298,6 +298,9 @@ def get_node_namespace(node: ir.Node) -> list[str]:
     if (metadata_namespace := node.metadata_props.get("namespace")) is not None:
         return _parse_namespace(metadata_namespace)
     if node.name:
+        ns = _parse_namespace(node.name)
+        if not ns:
+            return []
         # Remove the last part of the node name to get the namespace
         return _parse_namespace(node.name)[:-1]
     return []
@@ -328,7 +331,7 @@ def create_node(
     else:
         embedded_namespace = get_node_namespace(onnx_node)
         if embedded_namespace:
-            namespace = namespace + "/" + "/".join(embedded_namespace)
+            namespace = "/".join((namespace, *embedded_namespace))
     node = gb.GraphNode(
         id=onnx_node.name,
         label=create_op_label(onnx_node.domain, onnx_node.op_type),
@@ -396,8 +399,8 @@ def get_constant_namespace(initializer: ir.Value, root_namespace: str) -> str:
         user_node = user_nodes[0]
         user_node_namespace = get_node_namespace(user_node)
         if user_node_namespace:
-            initializer_namespace = (
-                initializer_namespace + "/" + "/".join(user_node_namespace)
+            initializer_namespace = "/".join(
+                (initializer_namespace, *user_node_namespace)
             )
     else:
         # If there are multiple user nodes, find the common namespace
@@ -412,9 +415,7 @@ def get_constant_namespace(initializer: ir.Value, root_namespace: str) -> str:
                     common_namespace = common_namespace[:i]
                     break
         if common_namespace:
-            initializer_namespace = (
-                initializer_namespace + "/" + "/".join(common_namespace)
-            )
+            initializer_namespace = "/".join((initializer_namespace, *common_namespace))
     return initializer_namespace
 
 
@@ -646,4 +647,5 @@ class ONNXAdapter(model_explorer.Adapter):
             )
             assert function_graph is not None
             graphs.append(function_graph)
+
         return {"graphs": graphs}

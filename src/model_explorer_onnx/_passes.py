@@ -11,13 +11,19 @@ logger = logging.getLogger(__name__)
 def _parse_namespace(node_name: str) -> list[str]:
     """Parse the namespace from the node name if it is in the format of /namespace/node_name."""
     split = node_name.lstrip("/").rstrip("/").split("/")
-    return [ns or "<anonymous>" for ns in split]
+    return [ns for ns in split if ns != ""]
 
 
 def get_node_namespace(node: ir.Node) -> list[str]:
     """Get the namespace from the node."""
     if (metadata_namespace := node.metadata_props.get("namespace")) is not None:
-        return metadata_namespace.split("/")
+        return _parse_namespace(metadata_namespace)
+    if node.name:
+        ns = _parse_namespace(node.name)
+        if not ns:
+            return []
+        # Remove the last part of the node name to get the namespace
+        return _parse_namespace(node.name)[:-1]
     return []
 
 
@@ -31,9 +37,7 @@ class AssignNodeNamespacePass(ir.passes.InPlacePass):
                 continue
             if node.name:
                 # Remove the last part of the node name to get the namespace
-                node.metadata_props["namespace"] = "/".join(
-                    _parse_namespace(node.name)[:-1]
-                )
+                node.metadata_props["namespace"] = "/".join(get_node_namespace(node))
                 modified = True
         return ir.passes.PassResult(model, modified=modified)
 
