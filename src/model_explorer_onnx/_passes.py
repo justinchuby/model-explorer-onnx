@@ -54,6 +54,9 @@ class AddCaptureNodePass(ir.passes.InPlacePass):
         modified = False
 
         for node in model.graph.all_nodes():
+            if node.op_type == "If":
+                # Skip If nodes
+                continue
             # Check if the node has any subgraph attributes
             has_subgraphs = any(
                 attr.type == ir.AttributeType.GRAPH for attr in node.attributes.values()
