@@ -40,7 +40,7 @@ class EmbedIfPass(ir.passes.InPlacePass):
     def call(self, model: ir.Model) -> ir.passes.PassResult:
         modified = False
         for node in model.graph.all_nodes():
-            if node.op_type != "If":
+            if node.op_type != "If" or node.domain != "":
                 continue
             modified = True
             # Handle only single graph attributes only
