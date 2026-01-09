@@ -42,6 +42,96 @@ class AssignNodeNamespacePass(ir.passes.InPlacePass):
         return ir.passes.PassResult(model, modified=modified)
 
 
+class AddCaptureNodePass(ir.passes.InPlacePass):
+    """Add a (Capture) node to nodes with subgraphs to visualize closed variables.
+
+    For nodes with subgraphs (e.g., If, Loop, Scan), find all values that are captured
+    from the outer graph (closed variables) and create a special (Capture) node that
+    takes these values as inputs. The Capture node is added as an input to the parent node.
+    """
+
+    def call(self, model: ir.Model) -> ir.passes.PassResult:
+        modified = False
+
+        for node in model.graph.all_nodes():
+            # Check if the node has any subgraph attributes
+            has_subgraphs = any(
+                attr.type == ir.AttributeType.GRAPH for attr in node.attributes.values()
+            )
+
+            if not has_subgraphs:
+                continue
+
+            # Collect all closed values from all subgraphs
+            all_closed_values = []
+            seen_values = set()
+
+            for attr in node.attributes.values():
+                if attr.type == ir.AttributeType.GRAPH:
+                    subgraph = attr.value
+                    closed_values = self._find_closed_values(subgraph)
+
+                    # Add to the list, avoiding duplicates
+                    for value in closed_values:
+                        if value not in seen_values:
+                            seen_values.add(value)
+                            all_closed_values.append(value)
+
+            if all_closed_values:
+                # Create a Capture node
+                capture_node = ir.node(
+                    "(Capture)",
+                    inputs=all_closed_values,
+                    num_outputs=len(all_closed_values),
+                    name=f"{node.name}_capture",
+                )
+
+                # Set output properties to match input properties
+                for i, input_value in enumerate(all_closed_values):
+                    output = capture_node.outputs[i]
+                    output.name = f"{node.name}_captured_{input_value.name}"
+                    output.type = input_value.type
+                    output.shape = input_value.shape
+
+                # Find the graph containing the node and insert the capture node before it
+                graph = node.graph
+                if graph is not None:
+                    graph.insert_before(node, capture_node)
+
+                    # Add the capture node's output as an input to the current node
+                    # Use resize_inputs to add a new input slot
+                    original_input_count = len(node.inputs)
+                    node.resize_inputs(original_input_count + 1)
+                    node.replace_input_with(
+                        original_input_count, capture_node.outputs[0]
+                    )
+
+                    modified = True
+
+        return ir.passes.PassResult(model, modified=modified)
+
+    def _find_closed_values(self, subgraph: ir.Graph) -> list[ir.Value]:
+        """Find all values that are closed (captured from outer scope) in a subgraph."""
+        used_values = []
+        subgraph_input_names = {inp.name for inp in subgraph.inputs}
+
+        for node in subgraph:
+            for inp in node.inputs:
+                if inp and inp.name not in subgraph_input_names:
+                    # This is a closed value from outer scope
+                    used_values.append(inp)
+
+        # Remove duplicates while preserving order
+        seen = set()
+        closed_values = []
+        for val in used_values:
+            if val not in seen:
+                seen.add(val)
+                closed_values.append(val)
+
+        return closed_values
+
+
 class EmbedIfPass(ir.passes.InPlacePass):
     """Convert the model to embed If directly within nodes."""
 
@@ -116,6 +206,7 @@ def process_model(model: ir.Model) -> None:
         [
             common_passes.NameFixPass(),
             AssignNodeNamespacePass(),
+            AddCaptureNodePass(),
             EmbedIfPass(),
         ]
     )
