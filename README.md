@@ -31,6 +31,8 @@ Read more on the [Model Explorer User Guide](https://github.com/google-ai-edge/m
 
 Graph input/output/initializers in ONNX are values (edges), not nodes. A node is displayed here for visualization. Graph inputs that are initialized by initializers are displayed as `InitializedInput`, and are displayed closer to nodes that use them.
 
+Nodes that implicitly captures values for their sub-graphs (Loop, Scan, etc.) will have an additional `(Capture)` node as input that connects all of the implicitly captured values with itself. As a special case, the subgraphs of an `If` node is flattened. The outputs of the two branches of an `If` node will be gathered by a `(Phi)` node to show connectivity. This modification in the graph ensures that all value dependencies are shown in the visualization.
+
 ## Color Themes
 
 Get node color themes [here](./themes)
