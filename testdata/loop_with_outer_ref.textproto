@@ -1,0 +1,136 @@
+ir_version: 13
+producer_name: "onnx-loop-example"
+graph {
+  node {
+    output: "initial_cond"
+    op_type: "Constant"
+    attribute {
+      name: "value"
+      t {
+        data_type: 9
+        int32_data: 1
+        name: "const_true"
+      }
+      type: TENSOR
+    }
+  }
+  node {
+    input: "max_iter"
+    input: "initial_cond"
+    input: "initial"
+    output: "final_result"
+    op_type: "Loop"
+    attribute {
+      name: "body"
+      g {
+        node {
+          input: "accum_in"
+          input: "x_outer"
+          output: "accum_out"
+          op_type: "Add"
+        }
+        node {
+          input: "cond_in"
+          output: "cond_out"
+          op_type: "Identity"
+        }
+        name: "loop_body"
+        input {
+          name: "iter"
+          type {
+            tensor_type {
+              elem_type: 7
+              shape {
+              }
+            }
+          }
+        }
+        input {
+          name: "cond_in"
+          type {
+            tensor_type {
+              elem_type: 9
+              shape {
+              }
+            }
+          }
+        }
+        input {
+          name: "accum_in"
+          type {
+            tensor_type {
+              elem_type: 1
+              shape {
+              }
+            }
+          }
+        }
+        output {
+          name: "cond_out"
+          type {
+            tensor_type {
+              elem_type: 9
+              shape {
+              }
+            }
+          }
+        }
+        output {
+          name: "accum_out"
+          type {
+            tensor_type {
+              elem_type: 1
+              shape {
+              }
+            }
+          }
+        }
+      }
+      type: GRAPH
+    }
+  }
+  name: "loop_with_outer_reference"
+  input {
+    name: "x_outer"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+        }
+      }
+    }
+  }
+  input {
+    name: "max_iter"
+    type {
+      tensor_type {
+        elem_type: 7
+        shape {
+        }
+      }
+    }
+  }
+  input {
+    name: "initial"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+        }
+      }
+    }
+  }
+  output {
+    name: "final_result"
+    type {
+      tensor_type {
+        elem_type: 1
+        shape {
+        }
+      }
+    }
+  }
+}
+opset_import {
+  version: 13
+}

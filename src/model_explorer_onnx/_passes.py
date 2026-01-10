@@ -42,6 +42,132 @@ class AssignNodeNamespacePass(ir.passes.InPlacePass):
         return ir.passes.PassResult(model, modified=modified)
 
 
+class ImplicitUseAnalysisPass(ir.passes.InPlacePass):
+    """Find all closed variables for each node with subgraphs."""
+
+    def _iterate_subgraphs(self, node: ir.Node, implicit_usages, graph_stack):
+        def process_node(node: ir.Node, subgraph: ir.Graph):
+            for inp in node.inputs:
+                if inp is not None and inp.graph is not subgraph:
+                    # This is a closed variable, add to implicit usages of all parent graphs
+                    for g in reversed(graph_stack):
+                        if g is inp.graph:
+                            break
+                        implicit_usages[g].append(inp)
+
+        for attr in node.attributes.values():
+            if not isinstance(attr, ir.Attr):
+                continue
+            if attr.type == ir.AttributeType.GRAPH:
+                subgraph = attr.as_graph()
+                graph_stack.append(subgraph)
+                if subgraph not in implicit_usages:
+                    implicit_usages[subgraph] = []
+                for node in subgraph:
+                    process_node(node, subgraph)
+                    self._iterate_subgraphs(node, implicit_usages, graph_stack)
+                graph_stack.pop()
+            elif attr.type == ir.AttributeType.GRAPHS:
+                for subgraph in attr.as_graphs():
+                    graph_stack.append(subgraph)
+                    if subgraph not in implicit_usages:
+                        implicit_usages[subgraph] = []
+                    for node in subgraph:
+                        process_node(node, subgraph)
+                        self._iterate_subgraphs(node, implicit_usages, graph_stack)
+                    graph_stack.pop()
+
+    def call(self, model: ir.Model) -> ir.passes.PassResult:
+        graph_stack: list[ir.Graph] = []
+        implicit_usages: dict[ir.Graph, list[ir.Value]] = {}
+        for node in model.graph:
+            self._iterate_subgraphs(node, implicit_usages, graph_stack)
+
+        for graph, used_values in implicit_usages.items():
+            # Remove duplicates while preserving order
+            seen = set()
+            closed_values = []
+            for val in used_values:
+                if val not in seen:
+                    seen.add(val)
+                    closed_values.append(val)
+            graph.meta["implicit_uses"] = closed_values
+        return ir.passes.PassResult(model, modified=False)
+
+
+class AddCaptureNodePass(ir.passes.InPlacePass):
+    """Add a (Capture) node to nodes with subgraphs to visualize closed variables.
+
+    For nodes with subgraphs (e.g., If, Loop, Scan), find all values that are captured
+    from the outer graph (closed variables) and create a special (Capture) node that
+    takes these values as inputs. The Capture node is added as an input to the parent node.
+    """
+
+    def call(self, model: ir.Model) -> ir.passes.PassResult:
+        modified = False
+
+        for node in model.graph.all_nodes():
+            if not any(
+                attr.type in (ir.AttributeType.GRAPH, ir.AttributeType.GRAPHS)
+                for attr in node.attributes.values()
+            ):
+                continue
+            if node.op_type == "If" and node.domain == "":
+                # Skip If nodes as they are handled in EmbedIfPass
+                continue
+
+            # Get the closed variables for this node's graph(s)
+            all_closed_values: list[ir.Value] = []
+            for attr in node.attributes.values():
+                if attr.type == ir.AttributeType.GRAPH:
+                    subgraphs = [attr.as_graph()]
+                elif attr.type == ir.AttributeType.GRAPHS:
+                    subgraphs = attr.as_graphs()
+                else:
+                    continue
+
+                for subgraph in subgraphs:
+                    closed_values = subgraph.meta.get("implicit_uses", [])
+                    all_closed_values.extend(closed_values)
+
+            # Deduplicate closed values while preserving order, to avoid redundant
+            # inputs when the same value is used in multiple subgraphs.
+            unique_closed_values: list[ir.Value] = []
+            seen_values: set[ir.Value] = set()
+            for value in all_closed_values:
+                if value in seen_values:
+                    continue
+                seen_values.add(value)
+                unique_closed_values.append(value)
+
+            if not unique_closed_values:
+                continue
+
+            # Create a Capture node
+            capture_node = ir.node(
+                "(Capture)",
+                inputs=unique_closed_values,
+                name=f"{node.name}_capture",
+            )
+
+            capture_node.outputs[0].name = f"{node.name}_captured_output"
+
+            # Find the graph containing the node and insert the capture node before it
+            graph = node.graph
+            if graph is not None:
+                graph.insert_before(node, capture_node)
+
+                # Add the capture node's output as an input to the current node
+                # Use resize_inputs to add a new input slot
+                original_input_count = len(node.inputs)
+                node.resize_inputs(original_input_count + 1)
+                node.replace_input_with(original_input_count, capture_node.outputs[0])
+
+                modified = True
+
+        return ir.passes.PassResult(model, modified=modified)
+
+
 class EmbedIfPass(ir.passes.InPlacePass):
     """Convert the model to embed If directly within nodes."""
 
@@ -116,6 +242,8 @@ def process_model(model: ir.Model) -> None:
         [
             common_passes.NameFixPass(),
             AssignNodeNamespacePass(),
+            ImplicitUseAnalysisPass(),
+            AddCaptureNodePass(),
             EmbedIfPass(),
         ]
     )
