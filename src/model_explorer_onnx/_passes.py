@@ -108,22 +108,27 @@ class AddCaptureNodePass(ir.passes.InPlacePass):
 
         for node in model.graph.all_nodes():
             if not any(
-                attr.type == ir.AttributeType.GRAPH for attr in node.attributes.values()
+                attr.type in (ir.AttributeType.GRAPH, ir.AttributeType.GRAPHS)
+                for attr in node.attributes.values()
             ):
                 continue
             if node.op_type == "If" and node.domain == "":
                 # Skip If nodes as they are handled in EmbedIfPass
                 continue
 
-            # Get the closed variables for this node's graph
+            # Get the closed variables for this node's graph(s)
             all_closed_values: list[ir.Value] = []
             for attr in node.attributes.values():
-                if attr.type != ir.AttributeType.GRAPH:
+                if attr.type == ir.AttributeType.GRAPH:
+                    subgraphs = [attr.as_graph()]
+                elif attr.type == ir.AttributeType.GRAPHS:
+                    subgraphs = attr.as_graphs()
+                else:
                     continue
-                subgraph = attr.as_graph()
-                closed_values = subgraph.meta.get("implicit_uses", [])
-                all_closed_values.extend(closed_values)
 
+                for subgraph in subgraphs:
+                    closed_values = subgraph.meta.get("implicit_uses", [])
+                    all_closed_values.extend(closed_values)
             if not all_closed_values:
                 continue
 
