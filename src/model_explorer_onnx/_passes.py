@@ -129,13 +129,24 @@ class AddCaptureNodePass(ir.passes.InPlacePass):
                 for subgraph in subgraphs:
                     closed_values = subgraph.meta.get("implicit_uses", [])
                     all_closed_values.extend(closed_values)
-            if not all_closed_values:
+            # Deduplicate closed values while preserving order, to avoid redundant
+            # inputs when the same value is used in multiple subgraphs.
+            unique_closed_values: list[ir.Value] = []
+            seen_ids: set[int] = set()
+            for value in all_closed_values:
+                value_id = id(value)
+                if value_id in seen_ids:
+                    continue
+                seen_ids.add(value_id)
+                unique_closed_values.append(value)
+
+            if not unique_closed_values:
                 continue
 
             # Create a Capture node
             capture_node = ir.node(
                 "(Capture)",
-                inputs=all_closed_values,
+                inputs=unique_closed_values,
                 name=f"{node.name}_capture",
             )
 
