@@ -4,6 +4,10 @@
 
 ONNX Adapter for [google-ai-edge/model-explorer](https://github.com/google-ai-edge/model-explorer)
 
+## 🌟 Use it on HuggingFace Spaces
+
+https://huggingface.co/spaces/justinchuby/model-explorer
+
 ## Installation
 
 ```bash
