@@ -45,34 +45,43 @@ class AssignNodeNamespacePass(ir.passes.InPlacePass):
 class ImplicitUseAnalysisPass(ir.passes.InPlacePass):
     """Find all closed variables for each node with subgraphs."""
 
+    def _iterate_subgraphs(self, node: ir.Node, implicit_usages, graph_stack):
+        def process_node(node: ir.Node, subgraph: ir.Graph):
+            for inp in node.inputs:
+                if inp is not None and inp.graph is not subgraph:
+                    # This is a closed variable, add to implicit usages of all parent graphs
+                    for g in reversed(graph_stack):
+                        if g is inp.graph:
+                            break
+                        implicit_usages[g].append(inp)
+
+        for attr in node.attributes.values():
+            if not isinstance(attr, ir.Attr):
+                continue
+            if attr.type == ir.AttributeType.GRAPH:
+                subgraph = attr.as_graph()
+                graph_stack.append(subgraph)
+                if subgraph not in implicit_usages:
+                    implicit_usages[subgraph] = []
+                for node in subgraph:
+                    process_node(node, subgraph)
+                    self._iterate_subgraphs(node, implicit_usages, graph_stack)
+                graph_stack.pop()
+            elif attr.type == ir.AttributeType.GRAPHS:
+                for subgraph in attr.as_graphs():
+                    graph_stack.append(subgraph)
+                    if subgraph not in implicit_usages:
+                        implicit_usages[subgraph] = []
+                    for node in subgraph:
+                        process_node(node, subgraph)
+                        self._iterate_subgraphs(node, implicit_usages, graph_stack)
+                    graph_stack.pop()
+
     def call(self, model: ir.Model) -> ir.passes.PassResult:
         graph_stack: list[ir.Graph] = []
         implicit_usages: dict[ir.Graph, list[ir.Value]] = {}
-
-        def enter_graph(graph: ir.Graph):
-            if graph not in implicit_usages:
-                implicit_usages[graph] = []
-            graph_stack.append(graph)
-
-        def exit_graph(graph: ir.Graph):
-            old_graph = graph_stack.pop()
-            assert graph is old_graph
-
-        for node in ir.traversal.RecursiveGraphIterator(
-            model.graph, enter_graph=enter_graph, exit_graph=exit_graph
-        ):
-            for attr in node.attributes.values():
-                if attr.type != ir.AttributeType.GRAPH:
-                    continue
-                subgraph = attr.as_graph()
-                for node in subgraph:
-                    for inp in node.inputs:
-                        if inp is not None and inp.graph is not subgraph:
-                            # This is a closed variable, add to implicit usages of all parent graphs
-                            for g in reversed(graph_stack):
-                                implicit_usages[g].append(inp)
-                                if g is subgraph:
-                                    break
+        for node in model.graph:
+            self._iterate_subgraphs(node, implicit_usages, graph_stack)
 
         for graph, used_values in implicit_usages.items():
             # Remove duplicates while preserving order
@@ -115,20 +124,17 @@ class AddCaptureNodePass(ir.passes.InPlacePass):
                 closed_values = subgraph.meta.get("implicit_uses", [])
                 all_closed_values.extend(closed_values)
 
+            if not all_closed_values:
+                continue
+
             # Create a Capture node
             capture_node = ir.node(
                 "(Capture)",
                 inputs=all_closed_values,
-                num_outputs=len(all_closed_values),
                 name=f"{node.name}_capture",
             )
 
-            # Set output properties to match input properties
-            for i, input_value in enumerate(all_closed_values):
-                output = capture_node.outputs[i]
-                output.name = f"{node.name}_captured_{input_value.name}"
-                output.type = input_value.type
-                output.shape = input_value.shape
+            capture_node.outputs[0].name = f"{node.name}_captured_output"
 
             # Find the graph containing the node and insert the capture node before it
             graph = node.graph
