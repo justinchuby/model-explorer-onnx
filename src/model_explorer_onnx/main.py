@@ -171,9 +171,6 @@ def add_inputs_metadata(
         if schema is not None:
             if (param_name := get_node_input_param_name(schema, i)) is not None:
                 set_attr(metadata, "param_name", param_name)
-        if input_value.metadata_props:
-            for prop_key, prop_value in input_value.metadata_props.items():
-                set_attr(metadata, f"[metadata] {prop_key}", prop_value)
         node.inputsMetadata.append(metadata)
 
 
@@ -199,9 +196,6 @@ def add_outputs_metadata(onnx_node: ir.Node, node: gb.GraphNode, opset_version: 
                 param_name := get_node_output_param_name(schema, output_index)
             ) is not None:
                 set_attr(metadata, "param_name", param_name)
-        if output_value.metadata_props:
-            for prop_key, prop_value in output_value.metadata_props.items():
-                set_attr(metadata, f"[metadata] {prop_key}", prop_value)
         node.outputsMetadata.append(metadata)
 
 
