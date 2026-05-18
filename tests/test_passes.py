@@ -78,14 +78,21 @@ class PassesTest(unittest.TestCase):
     def test_parse_namespace_and_get_node_namespace(self):
         self.assertEqual(_passes._parse_namespace("/a/b/"), ["a", "b"])
         self.assertEqual(
-            _passes.get_node_namespace(SimpleNamespace(metadata_props={"namespace": "/x/y/"}, name="n")),
+            _passes.get_node_namespace(
+                SimpleNamespace(metadata_props={"namespace": "/x/y/"}, name="n")
+            ),
             ["x", "y"],
         )
         self.assertEqual(
-            _passes.get_node_namespace(SimpleNamespace(metadata_props={}, name="/m/n/node")),
+            _passes.get_node_namespace(
+                SimpleNamespace(metadata_props={}, name="/m/n/node")
+            ),
             ["m", "n"],
         )
-        self.assertEqual(_passes.get_node_namespace(SimpleNamespace(metadata_props={}, name=None)), [])
+        self.assertEqual(
+            _passes.get_node_namespace(SimpleNamespace(metadata_props={}, name=None)),
+            [],
+        )
 
     def test_assign_node_namespace_pass(self):
         n1 = SimpleNamespace(metadata_props={}, name="/a/node")
@@ -100,14 +107,19 @@ class PassesTest(unittest.TestCase):
 
     def test_implicit_use_analysis_pass_handles_graph_and_graphs_attributes(self):
         outer_graph = object()
+
         class _HashableValue:
             def __init__(self, graph):
                 self.graph = graph
 
         captured = _HashableValue(outer_graph)
 
-        subgraph_a = _FakeGraph(nodes=[SimpleNamespace(inputs=[captured], attributes={})])
-        subgraph_b = _FakeGraph(nodes=[SimpleNamespace(inputs=[captured], attributes={})])
+        subgraph_a = _FakeGraph(
+            nodes=[SimpleNamespace(inputs=[captured], attributes={})]
+        )
+        subgraph_b = _FakeGraph(
+            nodes=[SimpleNamespace(inputs=[captured], attributes={})]
+        )
         top_node = SimpleNamespace(
             attributes={
                 "g": _FakeAttr(ir.AttributeType.GRAPH, graph=subgraph_a),
@@ -129,6 +141,7 @@ class PassesTest(unittest.TestCase):
         mock_ir_node.return_value = capture_node
 
         subgraph = _FakeGraph()
+
         class _HashableValue:
             def __init__(self, name):
                 self.name = name
@@ -154,7 +167,9 @@ class PassesTest(unittest.TestCase):
             graph=parent_graph,
             inputs=[SimpleNamespace(name="in0")],
         )
-        model = SimpleNamespace(graph=SimpleNamespace(all_nodes=lambda: [if_node, non_if_node]))
+        model = SimpleNamespace(
+            graph=SimpleNamespace(all_nodes=lambda: [if_node, non_if_node])
+        )
 
         result = _passes.AddCaptureNodePass()(model)
 

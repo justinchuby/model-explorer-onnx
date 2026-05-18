@@ -34,13 +34,19 @@ from model_explorer_onnx.main import (
 class MainUtilsTest(unittest.TestCase):
     def test_display_helpers(self):
         self.assertEqual(display_tensor_repr(None), "Data not available")
-        self.assertEqual(display_tensor_json(np.array([1, 2, 3]), Settings()), "[1,2,3]")
         self.assertEqual(
-            display_tensor_json(np.array([1, 2, 3, 4]), Settings(const_element_count_limit=2)),
+            display_tensor_json(np.array([1, 2, 3]), Settings()), "[1,2,3]"
+        )
+        self.assertEqual(
+            display_tensor_json(
+                np.array([1, 2, 3, 4]), Settings(const_element_count_limit=2)
+            ),
             "[1,2]",
         )
         self.assertEqual(
-            display_tensor_json(np.array([1, 2, 3]), Settings(const_element_count_limit=-1)),
+            display_tensor_json(
+                np.array([1, 2, 3]), Settings(const_element_count_limit=-1)
+            ),
             "[1,2,3]",
         )
         self.assertTrue(can_display_tensor_json(np.array([1]), Settings()))
@@ -55,19 +61,25 @@ class MainUtilsTest(unittest.TestCase):
     def test_format_helpers(self):
         self.assertEqual(format_shape(None), "[?]")
         self.assertEqual(format_type(None), "?")
-        self.assertEqual(format_tensor_shape(SimpleNamespace(dtype="FLOAT", shape="[1]")), "FLOAT[1]")
+        self.assertEqual(
+            format_tensor_shape(SimpleNamespace(dtype="FLOAT", shape="[1]")), "FLOAT[1]"
+        )
 
     def test_namespace_helpers(self):
         self.assertEqual(_parse_namespace("/a/b//c/"), ["a", "b", "c"])
         self.assertEqual(
-            get_node_namespace(SimpleNamespace(metadata_props={"namespace": "/x/y/"}, name="n")),
+            get_node_namespace(
+                SimpleNamespace(metadata_props={"namespace": "/x/y/"}, name="n")
+            ),
             ["x", "y"],
         )
         self.assertEqual(
             get_node_namespace(SimpleNamespace(metadata_props={}, name="/m/n/node")),
             ["m", "n"],
         )
-        self.assertEqual(get_node_namespace(SimpleNamespace(metadata_props={}, name="")), [])
+        self.assertEqual(
+            get_node_namespace(SimpleNamespace(metadata_props={}, name="")), []
+        )
 
     def test_schema_param_name_helpers(self):
         concat_schema = onnx.defs.get_schema("Concat", max_inclusive_version=18)
@@ -129,7 +141,10 @@ class MainUtilsTest(unittest.TestCase):
         self.assertEqual(by_id["[value] W"].label, "InitializedInput")
         self.assertEqual(by_id["[value] UNUSED"].label, "Initializer")
 
-        unused_metadata = {item.key: item.value for item in by_id["[value] UNUSED"].outputsMetadata[0].attrs}
+        unused_metadata = {
+            item.key: item.value
+            for item in by_id["[value] UNUSED"].outputsMetadata[0].attrs
+        }
         self.assertEqual(unused_metadata["unused"], "True")
 
     def test_create_graph_with_missing_name_returns_none(self):
@@ -160,13 +175,16 @@ class MainUtilsTest(unittest.TestCase):
         mock_infer_shapes.side_effect = RuntimeError("shape inference failed")
 
         subgraph = SimpleNamespace(name=None)
-        graph_attr = SimpleNamespace(type=ir.AttributeType.GRAPH, value=subgraph, name="body")
+        graph_attr = SimpleNamespace(
+            type=ir.AttributeType.GRAPH, value=subgraph, name="body"
+        )
         graph_node = SimpleNamespace(
             name="branch",
             attributes={"body": graph_attr},
             metadata_props={},
             doc_string="",
         )
+
         class FakeGraph(list):
             pass
 
