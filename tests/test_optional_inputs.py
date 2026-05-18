@@ -32,10 +32,14 @@ class OptionalInputsTest(unittest.TestCase):
 
         self.assertEqual(len(converted["graphs"]), 1)
 
-        resize_node = next(node for node in converted["graphs"][0].nodes if node.label == "Resize")
+        resize_node = next(
+            node for node in converted["graphs"][0].nodes if node.label == "Resize"
+        )
         self.assertEqual(
             [
-                next(attr.value for attr in metadata.attrs if attr.key == "__tensor_tag")
+                next(
+                    attr.value for attr in metadata.attrs if attr.key == "__tensor_tag"
+                )
                 for metadata in resize_node.inputsMetadata
             ],
             ["X", "None", "None", "sizes"],
