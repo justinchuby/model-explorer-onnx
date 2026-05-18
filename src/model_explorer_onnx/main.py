@@ -415,8 +415,8 @@ def get_constant_namespace(initializer: ir.Value, root_namespace: str) -> str:
                     common_namespace = common_namespace[:i]
                     break
             else:
-                # Namespaces share the full zipped prefix. The common prefix cannot be
-                # longer than the current user's namespace.
+                # If all compared elements match, the shared prefix is limited by the
+                # current user's namespace length.
                 common_namespace = common_namespace[: len(user_node_namespace)]
         if common_namespace:
             initializer_namespace = "/".join((initializer_namespace, *common_namespace))

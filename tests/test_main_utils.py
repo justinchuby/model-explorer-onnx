@@ -84,7 +84,7 @@ class MainUtilsTest(unittest.TestCase):
         self.assertEqual(create_op_label("ai.onnx", "Add"), "Add")
         self.assertEqual(create_op_label("custom.domain", "Add"), "custom.domain::Add")
 
-    def test_get_constant_namespace_shrinks_to_shortest_common_prefix(self):
+    def test_get_constant_namespace_limits_to_shortest_user_namespace(self):
         class HashableNode:
             def __init__(self, namespace: str, name: str):
                 self.metadata_props = {"namespace": namespace}
