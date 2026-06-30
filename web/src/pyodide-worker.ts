@@ -11,7 +11,7 @@ type ConvertMessage = {
 type IncomingMessage = ConvertMessage;
 
 const ONNX_WHEEL_URL =
-  "https://files.pythonhosted.org/packages/e4/ef/2eeac877bdcc48f047eb39f1f6f9e6127f5f29161d74ce35cc0ecfefa57f/onnx-1.22.0-cp312-abi3-pyemscripten_2025_0_wasm32.whl";
+  "https://files.pythonhosted.org/packages/82/f3/7996e76defeddd96aed47c7b8f54091672c23943ebaa2ddba3d1d3de5855/onnx_weekly-1.22.0.dev20260511-cp312-abi3-pyemscripten_2026_0_wasm32.whl";
 const PYODIDE_INDEX_URL = "https://cdn.jsdelivr.net/pyodide/v314.0.2/full/";
 
 let pyodide: PyodideInterface | null = null;
@@ -19,7 +19,6 @@ let initPromise: Promise<void> | null = null;
 
 type PyodideInterface = {
   loadPackage: (packages: string[]) => Promise<void>;
-  pyimport: (name: string) => { install: (requirements: string[]) => Promise<void> };
   runPythonAsync: (code: string) => Promise<unknown>;
   globals: { set: (name: string, value: unknown) => void };
   FS: { writeFile: (path: string, data: Uint8Array) => void };
@@ -45,14 +44,30 @@ const ensureInitialized = async (): Promise<void> => {
       indexURL: PYODIDE_INDEX_URL,
     });
     postStatus("Loading Python package manager...");
-    await pyodide.loadPackage(["micropip", "numpy", "ml_dtypes"]);
-
-    const micropip = pyodide.pyimport("micropip");
-    postStatus("Installing ONNX runtime packages...");
-    await micropip.install([
-      ONNX_WHEEL_URL,
-      "onnx-ir==0.2.1",
+    await pyodide.loadPackage([
+      "micropip",
+      "numpy",
+      "sympy",
+      "protobuf",
+      "ml-dtypes",
+      "packaging",
     ]);
+
+    postStatus("Installing ONNX runtime packages...");
+    pyodide.globals.set("onnx_wheel_url_js", ONNX_WHEEL_URL);
+    await pyodide.runPythonAsync(`
+import micropip
+onnx_wheel_url = (
+    onnx_wheel_url_js.to_py()
+    if hasattr(onnx_wheel_url_js, "to_py")
+    else onnx_wheel_url_js
+)
+# Install ONNX implementation first with matching pyemscripten platform tag.
+await micropip.install(onnx_wheel_url, deps=False)
+# onnx-ir depends on onnx; skip deps to avoid pulling a conflicting onnx wheel.
+await micropip.install("typing_extensions>=4.10", deps=False)
+await micropip.install("onnx-ir==0.2.1", deps=False)
+`);
 
     postStatus("Loading converter...");
     await pyodide.runPythonAsync(converterCode);
