@@ -31,6 +31,45 @@ onnxvis model.onnx
 
 Read more on the [Model Explorer User Guide](https://github.com/google-ai-edge/model-explorer/wiki/2.-User-Guide).
 
+## Static web app (Pyodide + pure JS frontend)
+
+This repository also includes a static web app under [`web/`](./web), which runs
+ONNX conversion fully in-browser with Pyodide and renders with
+`ai-edge-model-explorer-visualizer`.
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Build for static hosting:
+
+```bash
+npm run build
+```
+
+### Install as a desktop app (PWA)
+
+The `web/` app is configured as a Progressive Web App. After deployment (or when
+running locally), open it in a Chromium-based browser and use "Install app" in
+the address bar/menu to install it like a desktop application.
+
+GitHub Pages deployment is configured in
+[`.github/workflows/pages.yaml`](./.github/workflows/pages.yaml).
+
+### Keeping `web/src/python/convert.py` in sync with `src/`
+
+The web converter is web-adapted, but it is tracked against
+`src/model_explorer_onnx/main.py` and `src/model_explorer_onnx/_passes.py` with
+a sync stamp. `web` scripts (`dev`/`build`) run a sync check automatically.
+
+If you intentionally update `web/src/python/convert.py` after source changes:
+
+```bash
+python tools/web/sync_web_converter.py --mode update
+```
+
 ## Notes on representation
 
 Graph input/output/initializers in ONNX are values (edges), not nodes. A node is displayed here for visualization. Graph inputs that are initialized by initializers are displayed as `InitializedInput`, and are displayed closer to nodes that use them.

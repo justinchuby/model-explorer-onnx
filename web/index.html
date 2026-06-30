@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#2563eb" />
+    <link rel="icon" type="image/png" href="./onnx-fav.png" />
+    <link rel="apple-touch-icon" href="./pwa-192.png" />
+    <title>Model Explorer ONNX</title>
+  </head>
+  <body>
+    <main id="app">
+      <aside id="left-panel" class="model-list">
+        <div class="side-header">
+          <button
+            id="sidebar-toggle"
+            class="ghost-btn"
+            title="Toggle sidebar"
+            aria-label="Toggle sidebar"
+          >
+            <i data-lucide="list"></i>
+          </button>
+          <div class="side-title">
+            <span>Models</span>
+          </div>
+          <div class="side-header-actions">
+            <label
+              id="add-files-btn"
+              class="ghost-btn"
+              for="model-file"
+              title="Add model files"
+              aria-label="Add model files"
+            >
+              <i data-lucide="plus"></i>
+            </label>
+            <button
+              id="debug-toggle"
+              class="ghost-btn"
+              title="Toggle debug logs"
+              aria-label="Toggle debug logs"
+            >
+              <i data-lucide="terminal-square"></i>
+            </button>
+          </div>
+          <input
+            id="model-file"
+            class="hidden-file-input"
+            type="file"
+            multiple
+            accept=".onnx,.onnxtxt,.onnxtext,.textproto,.json,.onnxjson"
+          />
+        </div>
+        <div class="url-loader">
+          <input id="model-url-input" type="url" placeholder="Load model from URL" />
+          <button
+            id="load-url-btn"
+            class="ghost-btn"
+            title="Load URL model"
+            aria-label="Load URL model"
+          >
+            <i data-lucide="link-2"></i>
+          </button>
+          <button
+            id="copy-share-btn"
+            class="ghost-btn"
+            title="Copy share URL"
+            aria-label="Copy share URL"
+          >
+            <i data-lucide="share-2"></i>
+          </button>
+        </div>
+        <div id="ui-status" class="ui-status hidden" aria-live="polite"></div>
+        <div id="model-list"></div>
+        <pre id="debug-log" class="debug-log hidden"></pre>
+      </aside>
+      <section id="viewer-shell" class="viewer-shell"></section>
+      <button
+        id="sidebar-fab"
+        class="sidebar-fab hidden"
+        title="Open models panel"
+        aria-label="Open models panel"
+      >
+        <i data-lucide="list"></i>
+      </button>
+    </main>
+    <div id="drop-overlay" class="drop-overlay hidden">
+      <div class="drop-overlay-card">
+        <i data-lucide="upload-cloud"></i>
+        <span>Drop ONNX files anywhere to load</span>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
