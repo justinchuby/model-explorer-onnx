@@ -1,3 +1,7 @@
+# NOTE: This file is web-adapted and maintained alongside source adapter.
+# SOURCE_SYNC_FILES: src/model_explorer_onnx/main.py, src/model_explorer_onnx/_passes.py
+# SOURCE_SYNC_SHA256: 2071ea119e5cf81cad278f42a8de33a8b23962279d35fde9c16f178c0e438005
+
 from __future__ import annotations
 
 import json

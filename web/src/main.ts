@@ -54,7 +54,20 @@ if (meGlobal) {
 }
 
 const visualizer = document.createElement("model-explorer-visualizer");
-appEl.appendChild(visualizer);
+const applyDefaultTheme = async (): Promise<void> => {
+  try {
+    const response = await fetch(`${import.meta.env.BASE_URL}themes/netron.json`);
+    if (!response.ok) {
+      throw new Error(`Theme request failed with status ${response.status}`);
+    }
+    const nodeStylerRules = (await response.json()) as unknown[];
+    (visualizer as { config: Record<string, unknown> }).config = {
+      nodeStylerRules,
+    };
+  } catch (error) {
+    console.warn("Failed to load default netron theme.", error);
+  }
+};
 
 const worker = new Worker(new URL("./pyodide-worker.ts", import.meta.url), {
   type: "module",
@@ -98,6 +111,10 @@ worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
       : data.message;
   }
 };
+
+void applyDefaultTheme().finally(() => {
+  appEl.appendChild(visualizer);
+});
 
 const nextRequestId = () => `req-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 

@@ -10,6 +10,7 @@ const packageDist = resolve(
   "ai-edge-model-explorer-visualizer",
   "dist",
 );
+const netronThemePath = resolve(projectRoot, "..", "themes", "netron.json");
 const publicDir = resolve(projectRoot, "public");
 
 if (!existsSync(packageDist)) {
@@ -26,5 +27,9 @@ cpSync(resolve(packageDist, "static_files"), resolve(publicDir, "static_files"),
   recursive: true,
   force: true,
 });
+mkdirSync(resolve(publicDir, "themes"), { recursive: true });
+cpSync(netronThemePath, resolve(publicDir, "themes", "netron.json"));
 
-console.log("Copied model explorer worker.js and static_files into public/.");
+console.log(
+  "Copied visualizer assets and themes/netron.json into web/public/.",
+);

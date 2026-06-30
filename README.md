@@ -52,6 +52,18 @@ npm run build
 GitHub Pages deployment is configured in
 [`.github/workflows/pages.yaml`](./.github/workflows/pages.yaml).
 
+### Keeping `web/src/python/convert.py` in sync with `src/`
+
+The web converter is web-adapted, but it is tracked against
+`src/model_explorer_onnx/main.py` and `src/model_explorer_onnx/_passes.py` with
+a sync stamp. `web` scripts (`dev`/`build`) run a sync check automatically.
+
+If you intentionally update `web/src/python/convert.py` after source changes:
+
+```bash
+python tools/web/sync_web_converter.py --mode update
+```
+
 ## Notes on representation
 
 Graph input/output/initializers in ONNX are values (edges), not nodes. A node is displayed here for visualization. Graph inputs that are initialized by initializers are displayed as `InitializedInput`, and are displayed closer to nodes that use them.

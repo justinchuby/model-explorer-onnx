@@ -4,8 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "check:converter-sync": "python ../tools/web/sync_web_converter.py --mode check",
+    "sync:converter-stamp": "python ../tools/web/sync_web_converter.py --mode update",
+    "predev": "npm run check:converter-sync && node ./scripts/copy-visualizer-assets.mjs",
     "dev": "vite",
-    "prebuild": "node ./scripts/copy-visualizer-assets.mjs",
+    "prebuild": "npm run check:converter-sync && node ./scripts/copy-visualizer-assets.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "postinstall": "node ./scripts/copy-visualizer-assets.mjs"

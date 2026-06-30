@@ -165,3 +165,4 @@ web/node_modules/
 web/dist/
 web/public/worker.js
 web/public/static_files/
+web/public/themes/

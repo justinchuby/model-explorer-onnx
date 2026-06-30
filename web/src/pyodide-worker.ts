@@ -107,7 +107,12 @@ self.onmessage = async (event: MessageEvent<IncomingMessage>) => {
     pyodide.globals.set("model_settings_js", data.settings ?? {});
     pyodide.globals.set("model_path_js", filePath);
     const pyResult = await pyodide.runPythonAsync(
-      "convert_onnx_file(model_path_js.to_py(), dict(model_settings_js.to_py()))",
+      `
+def _as_py(value):
+    return value.to_py() if hasattr(value, "to_py") else value
+
+convert_onnx_file(_as_py(model_path_js), dict(_as_py(model_settings_js)))
+`,
     );
     const result = toJs(pyResult) as { graphs: unknown[] };
     self.postMessage({
