@@ -75,7 +75,9 @@ def display_tensor_json(
         size_limit = settings.const_element_count_limit
         if size_limit < 0 or size_limit >= array.size:
             return json.dumps(array.tolist(), separators=(",", ":"))
-        return json.dumps((array.flatten())[:size_limit].tolist(), separators=(",", ":"))
+        return json.dumps(
+            (array.flatten())[:size_limit].tolist(), separators=(",", ":")
+        )
     except Exception as e:
         logger.warning("Failed to display tensor (%s): %s", tensor, e)
     return ""
@@ -137,7 +139,9 @@ def set_metadata_props(metadata: dict[str, Any], value: ir.Value) -> None:
         set_attr(metadata, f"[metadata] {prop_key}", prop_value)
 
 
-def get_node_input_param_name(schema: onnx.defs.OpSchema, input_index: int) -> str | None:
+def get_node_input_param_name(
+    schema: onnx.defs.OpSchema, input_index: int
+) -> str | None:
     try:
         if len(schema.inputs) == 0:
             return None
@@ -220,7 +224,9 @@ def add_outputs_metadata(onnx_node: ir.Node, node: dict[str, Any], opset_version
         node["outputsMetadata"].append(metadata)
 
 
-def add_node_attrs(onnx_node: ir.Node, node: dict[str, Any], settings: Settings) -> None:
+def add_node_attrs(
+    onnx_node: ir.Node, node: dict[str, Any], settings: Settings
+) -> None:
     for attr in onnx_node.attributes.values():
         if isinstance(attr, ir.Attr) and attr.value is not None:
             if attr.type == ir.AttributeType.TENSOR:
@@ -307,12 +313,16 @@ def get_constant_namespace(initializer: ir.Value, root_namespace: str) -> str:
     if len(user_nodes) == 1:
         user_node_namespace = get_node_namespace(user_nodes[0])
         if user_node_namespace:
-            initializer_namespace = "/".join((initializer_namespace, *user_node_namespace))
+            initializer_namespace = "/".join(
+                (initializer_namespace, *user_node_namespace)
+            )
     else:
         common_namespace = get_node_namespace(user_nodes[0])
         for user_node in user_nodes:
             user_node_namespace = get_node_namespace(user_node)
-            for i, (name_a, name_b) in enumerate(zip(common_namespace, user_node_namespace)):
+            for i, (name_a, name_b) in enumerate(
+                zip(common_namespace, user_node_namespace)
+            ):
                 if name_a != name_b:
                     common_namespace = common_namespace[:i]
                     break
@@ -729,8 +739,7 @@ def convert_onnx_file(model_path: str, settings: dict[str, Any]) -> dict[str, An
                         "attributes": node.attributes,
                         "doc_string": node.doc_string,
                         **{
-                            f"[metadata] {k}": v
-                            for k, v in node.metadata_props.items()
+                            f"[metadata] {k}": v for k, v in node.metadata_props.items()
                         },
                     },
                 )
@@ -747,10 +756,7 @@ def convert_onnx_file(model_path: str, settings: dict[str, Any]) -> dict[str, An
                 "opset_imports": model.opset_imports,
                 "attributes": function.attributes,
                 "doc_string": function.doc_string,
-                **{
-                    f"[metadata] {k}": v
-                    for k, v in function.metadata_props.items()
-                },
+                **{f"[metadata] {k}": v for k, v in function.metadata_props.items()},
             },
         )
         assert function_graph is not None
