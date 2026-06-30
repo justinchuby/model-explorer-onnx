@@ -31,6 +31,27 @@ onnxvis model.onnx
 
 Read more on the [Model Explorer User Guide](https://github.com/google-ai-edge/model-explorer/wiki/2.-User-Guide).
 
+## Static web app (Pyodide + pure JS frontend)
+
+This repository also includes a static web app under [`web/`](./web), which runs
+ONNX conversion fully in-browser with Pyodide and renders with
+`ai-edge-model-explorer-visualizer`.
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Build for static hosting:
+
+```bash
+npm run build
+```
+
+GitHub Pages deployment is configured in
+[`.github/workflows/pages.yaml`](./.github/workflows/pages.yaml).
+
 ## Notes on representation
 
 Graph input/output/initializers in ONNX are values (edges), not nodes. A node is displayed here for visualization. Graph inputs that are initialized by initializers are displayed as `InitializedInput`, and are displayed closer to nodes that use them.

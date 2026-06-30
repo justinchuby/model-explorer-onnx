@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Model Explorer ONNX (Pyodide)</title>
+  </head>
+  <body>
+    <header class="toolbar">
+      <h1>Model Explorer ONNX (Pyodide)</h1>
+      <div class="controls">
+        <input id="model-file" type="file" accept=".onnx,.onnxtxt,.onnxtext,.textproto,.json,.onnxjson" />
+        <button id="load-btn" disabled>Load model</button>
+      </div>
+      <div id="status">Initializing Pyodide runtime...</div>
+    </header>
+    <main id="app"></main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

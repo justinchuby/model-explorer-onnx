@@ -1,0 +1,20 @@
+{
+  "name": "model-explorer-onnx-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "prebuild": "node ./scripts/copy-visualizer-assets.mjs",
+    "build": "vite build",
+    "preview": "vite preview",
+    "postinstall": "node ./scripts/copy-visualizer-assets.mjs"
+  },
+  "dependencies": {
+    "ai-edge-model-explorer-visualizer": "^0.1.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.2",
+    "vite": "^5.4.8"
+  }
+}
