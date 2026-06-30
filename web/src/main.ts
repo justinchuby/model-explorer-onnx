@@ -393,6 +393,9 @@ const normalizeModelUrl = (rawUrl: string): URL => {
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
     throw new Error("Only http(s) URLs are supported.");
   }
+  if (window.location.protocol === "https:" && parsed.protocol === "http:") {
+    throw new Error("HTTP model URLs are blocked on HTTPS pages. Please use an HTTPS URL.");
+  }
 
   // Convert common GitHub blob links to direct raw file links.
   if (parsed.hostname === "github.com") {
@@ -439,7 +442,7 @@ const loadModelFromUrl = async (rawUrl: string) => {
 
     for (const [index, candidate] of urlCandidates.entries()) {
       if (index > 0) {
-        setStatus(`Primary URL returned LFS pointer, retrying: ${candidate.toString()}`);
+        setStatus(`Retrying with fallback URL: ${candidate.toString()}`);
       }
       const response = await fetch(candidate.toString());
       if (!response.ok) {
@@ -526,7 +529,7 @@ worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
         pending.reject(new Error(data.message));
       }
     }
-    setStatus(data.message);
+    setStatus(data.message, "error");
   }
 };
 
@@ -590,17 +593,31 @@ debugToggleBtn.addEventListener("click", () => {
   debugLogEl.classList.toggle("hidden", !debugVisible);
 });
 
+const isFileDrag = (event: DragEvent): boolean => {
+  const types = event.dataTransfer?.types;
+  return Array.isArray(types) ? types.includes("Files") : Boolean(types?.contains("Files"));
+};
+
 window.addEventListener("dragenter", (event) => {
+  if (!isFileDrag(event)) {
+    return;
+  }
   event.preventDefault();
   dragDepth += 1;
   dropOverlay.classList.remove("hidden");
 });
 
 window.addEventListener("dragover", (event) => {
+  if (!isFileDrag(event)) {
+    return;
+  }
   event.preventDefault();
 });
 
-window.addEventListener("dragleave", () => {
+window.addEventListener("dragleave", (event) => {
+  if (!isFileDrag(event)) {
+    return;
+  }
   dragDepth = Math.max(0, dragDepth - 1);
   if (dragDepth === 0) {
     dropOverlay.classList.add("hidden");
@@ -608,6 +625,9 @@ window.addEventListener("dragleave", () => {
 });
 
 window.addEventListener("drop", async (event) => {
+  if (!isFileDrag(event)) {
+    return;
+  }
   event.preventDefault();
   dragDepth = 0;
   dropOverlay.classList.add("hidden");

@@ -12,17 +12,33 @@
     <main id="app">
       <aside id="left-panel" class="model-list">
         <div class="side-header">
-          <button id="sidebar-toggle" class="ghost-btn" title="Toggle sidebar">
+          <button
+            id="sidebar-toggle"
+            class="ghost-btn"
+            title="Toggle sidebar"
+            aria-label="Toggle sidebar"
+          >
             <i data-lucide="list"></i>
           </button>
           <div class="side-title">
             <span>Models</span>
           </div>
           <div class="side-header-actions">
-            <label id="add-files-btn" class="ghost-btn" for="model-file" title="Add model files">
+            <label
+              id="add-files-btn"
+              class="ghost-btn"
+              for="model-file"
+              title="Add model files"
+              aria-label="Add model files"
+            >
               <i data-lucide="plus"></i>
             </label>
-            <button id="debug-toggle" class="ghost-btn" title="Toggle debug logs">
+            <button
+              id="debug-toggle"
+              class="ghost-btn"
+              title="Toggle debug logs"
+              aria-label="Toggle debug logs"
+            >
               <i data-lucide="terminal-square"></i>
             </button>
           </div>
@@ -36,10 +52,20 @@
         </div>
         <div class="url-loader">
           <input id="model-url-input" type="url" placeholder="Load model from URL" />
-          <button id="load-url-btn" class="ghost-btn" title="Load URL model">
+          <button
+            id="load-url-btn"
+            class="ghost-btn"
+            title="Load URL model"
+            aria-label="Load URL model"
+          >
             <i data-lucide="link-2"></i>
           </button>
-          <button id="copy-share-btn" class="ghost-btn" title="Copy share URL">
+          <button
+            id="copy-share-btn"
+            class="ghost-btn"
+            title="Copy share URL"
+            aria-label="Copy share URL"
+          >
             <i data-lucide="share-2"></i>
           </button>
         </div>
@@ -48,7 +74,12 @@
         <pre id="debug-log" class="debug-log hidden"></pre>
       </aside>
       <section id="viewer-shell" class="viewer-shell"></section>
-      <button id="sidebar-fab" class="sidebar-fab hidden" title="Open models panel">
+      <button
+        id="sidebar-fab"
+        class="sidebar-fab hidden"
+        title="Open models panel"
+        aria-label="Open models panel"
+      >
         <i data-lucide="list"></i>
       </button>
     </main>

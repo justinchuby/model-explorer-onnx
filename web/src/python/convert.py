@@ -75,9 +75,7 @@ def display_tensor_json(
         size_limit = settings.const_element_count_limit
         if size_limit < 0 or size_limit >= array.size:
             return json.dumps(array.tolist(), separators=(",", ":"))
-        return json.dumps(
-            (array.flatten())[:size_limit].tolist(), separators=(",", ":")
-        )
+        return json.dumps((array.ravel())[:size_limit].tolist(), separators=(",", ":"))
     except Exception as e:
         logger.warning("Failed to display tensor (%s): %s", tensor, e)
     return ""
