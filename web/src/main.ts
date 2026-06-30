@@ -1,5 +1,5 @@
 import "ai-edge-model-explorer-visualizer";
-import { createIcons } from "lucide";
+import { createIcons, icons } from "lucide";
 import "./style.css";
 
 type WorkerStatusMessage = { type: "status"; message: string };
@@ -36,9 +36,11 @@ declare global {
 
 const appEl = document.getElementById("app");
 const sidebarToggleBtn = document.getElementById("sidebar-toggle") as HTMLButtonElement;
-const addFilesBtn = document.getElementById("add-files-btn") as HTMLButtonElement;
+const sidebarFabBtn = document.getElementById("sidebar-fab") as HTMLButtonElement;
 const fileInput = document.getElementById("model-file") as HTMLInputElement;
 const debugToggleBtn = document.getElementById("debug-toggle") as HTMLButtonElement;
+const sideHeaderEl = document.querySelector(".side-header") as HTMLElement;
+const leftPanelEl = document.getElementById("left-panel") as HTMLElement;
 const modelListEl = document.getElementById("model-list");
 const debugLogEl = document.getElementById("debug-log");
 const viewerShell = document.getElementById("viewer-shell");
@@ -47,9 +49,11 @@ const dropOverlay = document.getElementById("drop-overlay");
 if (
   !appEl ||
   !sidebarToggleBtn ||
-  !addFilesBtn ||
+  !sidebarFabBtn ||
   !fileInput ||
   !debugToggleBtn ||
+  !sideHeaderEl ||
+  !leftPanelEl ||
   !modelListEl ||
   !debugLogEl ||
   !viewerShell ||
@@ -73,11 +77,20 @@ let activeCollectionLabel: string | null = null;
 const debugLines: string[] = [];
 let debugVisible = false;
 let dragDepth = 0;
+let draggingPanel = false;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
 
 const pendingRequests = new Map<
   string,
   { resolve: (value: unknown[]) => void; reject: (reason: Error) => void }
 >();
+
+const renderIcons = () =>
+  createIcons({
+    icons,
+    attrs: { width: "15", height: "15", strokeWidth: "2" },
+  });
 
 const nextRequestId = () => `req-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
@@ -121,12 +134,7 @@ const renderModelList = () => {
     if (collection.label === activeCollectionLabel) {
       row.classList.add("active");
     }
-
-    const nameBtn = document.createElement("button");
-    nameBtn.className = "ghost-btn";
-    nameBtn.title = "Set active model";
-    nameBtn.innerHTML = `<i data-lucide="eye"></i>`;
-    nameBtn.addEventListener("click", () => {
+    row.addEventListener("click", () => {
       activeCollectionLabel = collection.label;
       renderModelList();
       renderVisualizerCollections();
@@ -141,7 +149,8 @@ const renderModelList = () => {
     removeBtn.className = "ghost-btn model-remove-btn";
     removeBtn.title = "Remove model";
     removeBtn.innerHTML = `<i data-lucide="trash-2"></i>`;
-    removeBtn.addEventListener("click", () => {
+    removeBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
       loadedCollections = loadedCollections.filter((c) => c.label !== collection.label);
       if (activeCollectionLabel === collection.label) {
         activeCollectionLabel =
@@ -150,13 +159,13 @@ const renderModelList = () => {
       renderModelList();
       renderVisualizerCollections();
       setStatus(`Removed ${collection.label}`);
-      createIcons({ attrs: { width: "14", height: "14", strokeWidth: "2" } });
+      renderIcons();
     });
 
-    row.append(nameBtn, name, removeBtn);
+    row.append(name, removeBtn);
     modelListEl.appendChild(row);
   }
-  createIcons({ attrs: { width: "14", height: "14", strokeWidth: "2" } });
+  renderIcons();
 };
 
 const getUniqueLabel = (baseName: string): string => {
@@ -266,7 +275,6 @@ const applyDefaultTheme = async (): Promise<void> => {
   }
 };
 
-addFilesBtn.addEventListener("click", () => fileInput.click());
 fileInput.addEventListener("change", async () => {
   const files = Array.from(fileInput.files ?? []).filter(isOnnxLike);
   await loadFiles(files);
@@ -275,6 +283,10 @@ fileInput.addEventListener("change", async () => {
 
 sidebarToggleBtn.addEventListener("click", () => {
   appEl.classList.toggle("sidebar-collapsed");
+});
+
+sidebarFabBtn.addEventListener("click", () => {
+  appEl.classList.remove("sidebar-collapsed");
 });
 
 debugToggleBtn.addEventListener("click", () => {
@@ -307,9 +319,65 @@ window.addEventListener("drop", async (event) => {
   await loadFiles(files);
 });
 
+const setPanelPosition = (left: number, top: number) => {
+  const appRect = appEl.getBoundingClientRect();
+  const panelRect = leftPanelEl.getBoundingClientRect();
+  const minLeft = 8;
+  const minTop = 8;
+  const maxLeft = Math.max(minLeft, appRect.width - panelRect.width - 8);
+  const maxTop = Math.max(minTop, appRect.height - panelRect.height - 8);
+  const clampedLeft = Math.min(maxLeft, Math.max(minLeft, left));
+  const clampedTop = Math.min(maxTop, Math.max(minTop, top));
+  appEl.style.setProperty("--panel-left", `${clampedLeft}px`);
+  appEl.style.setProperty("--panel-top", `${clampedTop}px`);
+};
+
+const clampPanelPositionToViewport = () => {
+  const style = getComputedStyle(appEl);
+  const currentLeft = Number.parseFloat(style.getPropertyValue("--panel-left")) || 14;
+  const currentTop = Number.parseFloat(style.getPropertyValue("--panel-top")) || 56;
+  setPanelPosition(currentLeft, currentTop);
+};
+
+sideHeaderEl.addEventListener("pointerdown", (event) => {
+  const target = event.target as HTMLElement | null;
+  if (target && target.closest("button,input")) {
+    return;
+  }
+  draggingPanel = true;
+  const panelRect = leftPanelEl.getBoundingClientRect();
+  const appRect = appEl.getBoundingClientRect();
+  dragOffsetX = event.clientX - panelRect.left;
+  dragOffsetY = event.clientY - panelRect.top;
+  sideHeaderEl.setPointerCapture(event.pointerId);
+  setPanelPosition(panelRect.left - appRect.left, panelRect.top - appRect.top);
+});
+
+window.addEventListener("pointermove", (event) => {
+  if (!draggingPanel || appEl.classList.contains("sidebar-collapsed")) {
+    return;
+  }
+  const appRect = appEl.getBoundingClientRect();
+  const nextLeft = event.clientX - appRect.left - dragOffsetX;
+  const nextTop = event.clientY - appRect.top - dragOffsetY;
+  setPanelPosition(nextLeft, nextTop);
+});
+
+window.addEventListener("pointerup", () => {
+  draggingPanel = false;
+});
+
+window.addEventListener("resize", () => {
+  if (appEl.classList.contains("sidebar-collapsed")) {
+    return;
+  }
+  clampPanelPositionToViewport();
+});
+
 void applyDefaultTheme().finally(() => {
   viewerShell.appendChild(visualizer);
   renderModelList();
   renderVisualizerCollections();
-  createIcons({ attrs: { width: "15", height: "15", strokeWidth: "2" } });
+  renderIcons();
+  clampPanelPositionToViewport();
 });

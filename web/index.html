@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Model Explorer ONNX (Pyodide)</title>
+    <title>Model Explorer ONNX</title>
   </head>
   <body>
     <main id="app">
@@ -16,9 +16,14 @@
             <i data-lucide="boxes"></i>
             <span>Models</span>
           </div>
-          <button id="add-files-btn" class="ghost-btn" title="Add model files">
-            <i data-lucide="plus"></i>
-          </button>
+          <div class="side-header-actions">
+            <label id="add-files-btn" class="ghost-btn" for="model-file" title="Add model files">
+              <i data-lucide="plus"></i>
+            </label>
+            <button id="debug-toggle" class="ghost-btn" title="Toggle debug logs">
+              <i data-lucide="terminal-square"></i>
+            </button>
+          </div>
           <input
             id="model-file"
             class="hidden-file-input"
@@ -27,15 +32,13 @@
             accept=".onnx,.onnxtxt,.onnxtext,.textproto,.json,.onnxjson"
           />
         </div>
-        <div class="side-toolbar">
-          <button id="debug-toggle" class="ghost-btn" title="Toggle debug logs">
-            <i data-lucide="terminal-square"></i>
-          </button>
-        </div>
         <div id="model-list"></div>
         <pre id="debug-log" class="debug-log hidden"></pre>
       </aside>
       <section id="viewer-shell" class="viewer-shell"></section>
+      <button id="sidebar-fab" class="sidebar-fab hidden" title="Open models panel">
+        <i data-lucide="panel-left-open"></i>
+      </button>
     </main>
     <div id="drop-overlay" class="drop-overlay hidden">
       <div class="drop-overlay-card">
