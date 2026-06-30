@@ -341,7 +341,7 @@ const clampPanelPositionToViewport = () => {
 
 sideHeaderEl.addEventListener("pointerdown", (event) => {
   const target = event.target as HTMLElement | null;
-  if (target && target.closest("button,input")) {
+  if (target && target.closest("button,input,label")) {
     return;
   }
   draggingPanel = true;
