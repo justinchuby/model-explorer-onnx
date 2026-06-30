@@ -22,7 +22,7 @@ type WorkerMessage =
   | WorkerErrorMessage;
 
 type Graph = { id?: string };
-type GraphCollection = { label: string; graphs: Graph[] };
+type GraphCollection = { label: string; graphs: Graph[]; sourceUrl?: string };
 type VisualizerElement = HTMLElement & {
   graphCollections: GraphCollection[];
   config?: Record<string, unknown>;
@@ -38,6 +38,9 @@ const appEl = document.getElementById("app");
 const sidebarToggleBtn = document.getElementById("sidebar-toggle") as HTMLButtonElement;
 const sidebarFabBtn = document.getElementById("sidebar-fab") as HTMLButtonElement;
 const fileInput = document.getElementById("model-file") as HTMLInputElement;
+const modelUrlInput = document.getElementById("model-url-input") as HTMLInputElement;
+const loadUrlBtn = document.getElementById("load-url-btn") as HTMLButtonElement;
+const copyShareBtn = document.getElementById("copy-share-btn") as HTMLButtonElement;
 const debugToggleBtn = document.getElementById("debug-toggle") as HTMLButtonElement;
 const sideHeaderEl = document.querySelector(".side-header") as HTMLElement;
 const leftPanelEl = document.getElementById("left-panel") as HTMLElement;
@@ -51,6 +54,9 @@ if (
   !sidebarToggleBtn ||
   !sidebarFabBtn ||
   !fileInput ||
+  !modelUrlInput ||
+  !loadUrlBtn ||
+  !copyShareBtn ||
   !debugToggleBtn ||
   !sideHeaderEl ||
   !leftPanelEl ||
@@ -80,6 +86,11 @@ let dragDepth = 0;
 let draggingPanel = false;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
+let draggingFromFab = false;
+let dragStartClientX = 0;
+let dragStartClientY = 0;
+let dragMoved = false;
+let suppressNextFabClick = false;
 
 const pendingRequests = new Map<
   string,
@@ -96,6 +107,9 @@ const nextRequestId = () => `req-${Date.now()}-${Math.random().toString(16).slic
 
 const isOnnxLike = (file: File) =>
   /\.(onnx|onnxtxt|onnxtext|textproto|json|onnxjson)$/i.test(file.name);
+
+const isOnnxLikeName = (name: string) =>
+  /\.(onnx|onnxtxt|onnxtext|textproto|json|onnxjson)$/i.test(name);
 
 const setStatus = (message: string) => {
   addDebugLine(`[status] ${message}`);
@@ -122,11 +136,31 @@ const renderVisualizerCollections = () => {
   visualizer.graphCollections = [active, ...loadedCollections.filter((c) => c.label !== activeCollectionLabel)];
 };
 
+const updateShareQueryParams = () => {
+  const currentUrl = new URL(window.location.href);
+  currentUrl.searchParams.delete("url");
+  for (const collection of loadedCollections) {
+    if (collection.sourceUrl) {
+      currentUrl.searchParams.append("url", collection.sourceUrl);
+    }
+  }
+  history.replaceState({}, "", currentUrl.toString());
+};
+
 const renderModelList = () => {
-  const header = document.createElement("div");
-  header.className = "model-list-header";
-  header.textContent = `Loaded models (${loadedCollections.length})`;
-  modelListEl.replaceChildren(header);
+  modelListEl.replaceChildren();
+  if (loadedCollections.length === 0) {
+    const emptyState = document.createElement("div");
+    emptyState.className = "model-list-empty";
+    emptyState.innerHTML = `
+      <div class="model-list-empty-title">No models loaded</div>
+      <div class="model-list-empty-hint">Paste a model URL and click the link button</div>
+      <div class="model-list-empty-hint">Or click + to open local files</div>
+      <div class="model-list-empty-hint">Or drag ONNX files anywhere on this page</div>
+    `;
+    modelListEl.appendChild(emptyState);
+    return;
+  }
 
   for (const collection of loadedCollections) {
     const row = document.createElement("div");
@@ -145,6 +179,14 @@ const renderModelList = () => {
     name.textContent = collection.label;
     name.title = collection.label;
 
+    if (collection.sourceUrl) {
+      const sourceBadge = document.createElement("span");
+      sourceBadge.className = "model-url-badge";
+      sourceBadge.textContent = "URL";
+      sourceBadge.title = collection.sourceUrl;
+      row.appendChild(sourceBadge);
+    }
+
     const removeBtn = document.createElement("button");
     removeBtn.className = "ghost-btn model-remove-btn";
     removeBtn.title = "Remove model";
@@ -158,6 +200,7 @@ const renderModelList = () => {
       }
       renderModelList();
       renderVisualizerCollections();
+      updateShareQueryParams();
       setStatus(`Removed ${collection.label}`);
       renderIcons();
     });
@@ -180,22 +223,38 @@ const getUniqueLabel = (baseName: string): string => {
   return `${baseName} (${i})`;
 };
 
-const convertModel = async (file: File): Promise<unknown[]> => {
+const convertModel = async (modelName: string, bytes: ArrayBuffer): Promise<unknown[]> => {
   const requestId = nextRequestId();
-  const bytes = await file.arrayBuffer();
   return new Promise((resolve, reject) => {
     pendingRequests.set(requestId, { resolve, reject });
     worker.postMessage(
       {
         type: "convert",
         requestId,
-        modelName: file.name,
+        modelName,
         bytes,
         settings: { const_element_count_limit: 1024 },
       },
       [bytes],
     );
   });
+};
+
+const appendLoadedCollection = (
+  labelBase: string,
+  graphCollections: unknown[],
+  sourceUrl?: string,
+) => {
+  const firstCollection = graphCollections[0] as { graphs?: Graph[] } | undefined;
+  if (!firstCollection?.graphs) {
+    throw new Error(`Converter returned no graph for ${labelBase}`);
+  }
+  const label = getUniqueLabel(labelBase);
+  loadedCollections.push({ label, graphs: firstCollection.graphs, sourceUrl });
+  activeCollectionLabel = label;
+  renderModelList();
+  renderVisualizerCollections();
+  updateShareQueryParams();
 };
 
 const loadFiles = async (files: File[]) => {
@@ -210,22 +269,64 @@ const loadFiles = async (files: File[]) => {
   for (const [index, file] of files.entries()) {
     setStatus(`Converting ${file.name} (${index + 1}/${files.length})...`);
     try {
-      const graphCollections = await convertModel(file);
-      const firstCollection = graphCollections[0] as { graphs?: Graph[] } | undefined;
-      if (!firstCollection?.graphs) {
-        throw new Error(`Converter returned no graph for ${file.name}`);
-      }
-      const label = getUniqueLabel(file.name);
-      loadedCollections.push({ label, graphs: firstCollection.graphs });
-      activeCollectionLabel = label;
-      renderModelList();
-      renderVisualizerCollections();
+      const bytes = await file.arrayBuffer();
+      const graphCollections = await convertModel(file.name, bytes);
+      appendLoadedCollection(file.name, graphCollections);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : `Failed to convert ${file.name}.`);
       return;
     }
   }
   setStatus(`Loaded ${files.length} model(s).`);
+};
+
+const guessModelNameFromUrl = (urlText: string): string => {
+  try {
+    const url = new URL(urlText);
+    const name = decodeURIComponent(url.pathname.split("/").pop() ?? "").trim();
+    if (name && isOnnxLikeName(name)) {
+      return name;
+    }
+  } catch {
+    // handled by fetch/URL parser later
+  }
+  return "model.onnx";
+};
+
+const loadModelFromUrl = async (rawUrl: string) => {
+  const modelUrl = rawUrl.trim();
+  if (!modelUrl) {
+    setStatus("Please enter a model URL.");
+    return;
+  }
+  if (!runtimeReady) {
+    setStatus("Runtime is still initializing...");
+    return;
+  }
+  setStatus(`Fetching model from URL: ${modelUrl}`);
+  try {
+    const response = await fetch(modelUrl);
+    if (!response.ok) {
+      throw new Error(`URL request failed with status ${response.status}`);
+    }
+    const bytes = await response.arrayBuffer();
+    const modelName = guessModelNameFromUrl(modelUrl);
+    const graphCollections = await convertModel(modelName, bytes);
+    appendLoadedCollection(modelName, graphCollections, modelUrl);
+    setStatus(`Loaded model from URL: ${modelName}`);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to load model URL.";
+    setStatus(`Failed to load URL model. ${message} (Check CORS and URL accessibility.)`);
+  }
+};
+
+const parseUrlModelsFromQuery = (): string[] => {
+  const params = new URL(window.location.href).searchParams;
+  return params
+    .getAll("url")
+    .map((u) => u.trim())
+    .filter((u) => u.length > 0);
 };
 
 worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
@@ -237,6 +338,15 @@ worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
   if (data.type === "ready") {
     runtimeReady = true;
     setStatus("Runtime ready.");
+    const queryUrls = parseUrlModelsFromQuery();
+    if (queryUrls.length > 0) {
+      void (async () => {
+        for (const [index, url] of queryUrls.entries()) {
+          setStatus(`Loading query URL ${index + 1}/${queryUrls.length}...`);
+          await loadModelFromUrl(url);
+        }
+      })();
+    }
     return;
   }
   if (data.type === "result") {
@@ -281,11 +391,38 @@ fileInput.addEventListener("change", async () => {
   fileInput.value = "";
 });
 
+loadUrlBtn.addEventListener("click", async () => {
+  await loadModelFromUrl(modelUrlInput.value);
+});
+
+modelUrlInput.addEventListener("keydown", async (event) => {
+  if (event.key !== "Enter") {
+    return;
+  }
+  event.preventDefault();
+  await loadModelFromUrl(modelUrlInput.value);
+});
+
+copyShareBtn.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(window.location.href);
+    setStatus("Share URL copied.");
+  } catch (error) {
+    setStatus(
+      error instanceof Error ? `Failed to copy URL: ${error.message}` : "Failed to copy URL.",
+    );
+  }
+});
+
 sidebarToggleBtn.addEventListener("click", () => {
   appEl.classList.toggle("sidebar-collapsed");
 });
 
 sidebarFabBtn.addEventListener("click", () => {
+  if (suppressNextFabClick) {
+    suppressNextFabClick = false;
+    return;
+  }
   appEl.classList.remove("sidebar-collapsed");
 });
 
@@ -349,13 +486,40 @@ sideHeaderEl.addEventListener("pointerdown", (event) => {
   const appRect = appEl.getBoundingClientRect();
   dragOffsetX = event.clientX - panelRect.left;
   dragOffsetY = event.clientY - panelRect.top;
+  draggingFromFab = false;
+  dragStartClientX = event.clientX;
+  dragStartClientY = event.clientY;
+  dragMoved = false;
   sideHeaderEl.setPointerCapture(event.pointerId);
   setPanelPosition(panelRect.left - appRect.left, panelRect.top - appRect.top);
 });
 
-window.addEventListener("pointermove", (event) => {
-  if (!draggingPanel || appEl.classList.contains("sidebar-collapsed")) {
+sidebarFabBtn.addEventListener("pointerdown", (event) => {
+  if (!appEl.classList.contains("sidebar-collapsed")) {
     return;
+  }
+  draggingPanel = true;
+  draggingFromFab = true;
+  dragStartClientX = event.clientX;
+  dragStartClientY = event.clientY;
+  dragMoved = false;
+  const panelRect = leftPanelEl.getBoundingClientRect();
+  dragOffsetX = event.clientX - panelRect.left;
+  dragOffsetY = event.clientY - panelRect.top;
+  sidebarFabBtn.setPointerCapture(event.pointerId);
+});
+
+window.addEventListener("pointermove", (event) => {
+  if (!draggingPanel) {
+    return;
+  }
+  if (appEl.classList.contains("sidebar-collapsed") && !draggingFromFab) {
+    return;
+  }
+  if (
+    Math.hypot(event.clientX - dragStartClientX, event.clientY - dragStartClientY) > 4
+  ) {
+    dragMoved = true;
   }
   const appRect = appEl.getBoundingClientRect();
   const nextLeft = event.clientX - appRect.left - dragOffsetX;
@@ -364,7 +528,12 @@ window.addEventListener("pointermove", (event) => {
 });
 
 window.addEventListener("pointerup", () => {
+  if (draggingFromFab && dragMoved) {
+    suppressNextFabClick = true;
+  }
   draggingPanel = false;
+  draggingFromFab = false;
+  dragMoved = false;
 });
 
 window.addEventListener("resize", () => {

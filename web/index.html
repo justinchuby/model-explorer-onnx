@@ -10,10 +10,9 @@
       <aside id="left-panel" class="model-list">
         <div class="side-header">
           <button id="sidebar-toggle" class="ghost-btn" title="Toggle sidebar">
-            <i data-lucide="panel-left-close"></i>
+            <i data-lucide="list"></i>
           </button>
           <div class="side-title">
-            <i data-lucide="boxes"></i>
             <span>Models</span>
           </div>
           <div class="side-header-actions">
@@ -32,12 +31,21 @@
             accept=".onnx,.onnxtxt,.onnxtext,.textproto,.json,.onnxjson"
           />
         </div>
+        <div class="url-loader">
+          <input id="model-url-input" type="url" placeholder="Load model from URL" />
+          <button id="load-url-btn" class="ghost-btn" title="Load URL model">
+            <i data-lucide="link-2"></i>
+          </button>
+          <button id="copy-share-btn" class="ghost-btn" title="Copy share URL">
+            <i data-lucide="share-2"></i>
+          </button>
+        </div>
         <div id="model-list"></div>
         <pre id="debug-log" class="debug-log hidden"></pre>
       </aside>
       <section id="viewer-shell" class="viewer-shell"></section>
       <button id="sidebar-fab" class="sidebar-fab hidden" title="Open models panel">
-        <i data-lucide="panel-left-open"></i>
+        <i data-lucide="list"></i>
       </button>
     </main>
     <div id="drop-overlay" class="drop-overlay hidden">
