@@ -6,15 +6,43 @@
     <title>Model Explorer ONNX (Pyodide)</title>
   </head>
   <body>
-    <header class="toolbar">
-      <h1>Model Explorer ONNX (Pyodide)</h1>
-      <div class="controls">
-        <input id="model-file" type="file" accept=".onnx,.onnxtxt,.onnxtext,.textproto,.json,.onnxjson" />
-        <button id="load-btn" disabled>Load model</button>
+    <main id="app">
+      <aside id="left-panel" class="model-list">
+        <div class="side-header">
+          <button id="sidebar-toggle" class="ghost-btn" title="Toggle sidebar">
+            <i data-lucide="panel-left-close"></i>
+          </button>
+          <div class="side-title">
+            <i data-lucide="boxes"></i>
+            <span>Models</span>
+          </div>
+          <button id="add-files-btn" class="ghost-btn" title="Add model files">
+            <i data-lucide="plus"></i>
+          </button>
+          <input
+            id="model-file"
+            class="hidden-file-input"
+            type="file"
+            multiple
+            accept=".onnx,.onnxtxt,.onnxtext,.textproto,.json,.onnxjson"
+          />
+        </div>
+        <div class="side-toolbar">
+          <button id="debug-toggle" class="ghost-btn" title="Toggle debug logs">
+            <i data-lucide="terminal-square"></i>
+          </button>
+        </div>
+        <div id="model-list"></div>
+        <pre id="debug-log" class="debug-log hidden"></pre>
+      </aside>
+      <section id="viewer-shell" class="viewer-shell"></section>
+    </main>
+    <div id="drop-overlay" class="drop-overlay hidden">
+      <div class="drop-overlay-card">
+        <i data-lucide="upload-cloud"></i>
+        <span>Drop ONNX files anywhere to load</span>
       </div>
-      <div id="status">Initializing Pyodide runtime...</div>
-    </header>
-    <main id="app"></main>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

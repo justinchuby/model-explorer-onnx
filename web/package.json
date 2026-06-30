@@ -14,10 +14,11 @@
     "postinstall": "node ./scripts/copy-visualizer-assets.mjs"
   },
   "dependencies": {
-    "ai-edge-model-explorer-visualizer": "^0.1.2"
+    "ai-edge-model-explorer-visualizer": "^0.1.2",
+    "lucide": "^0.525.0"
   },
   "devDependencies": {
     "typescript": "^5.6.2",
-    "vite": "^5.4.8"
+    "vite": "^8.1.2"
   }
 }
