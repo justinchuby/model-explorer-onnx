@@ -45,6 +45,7 @@ const debugToggleBtn = document.getElementById("debug-toggle") as HTMLButtonElem
 const sideHeaderEl = document.querySelector(".side-header") as HTMLElement;
 const leftPanelEl = document.getElementById("left-panel") as HTMLElement;
 const modelListEl = document.getElementById("model-list");
+const uiStatusEl = document.getElementById("ui-status");
 const debugLogEl = document.getElementById("debug-log");
 const viewerShell = document.getElementById("viewer-shell");
 const dropOverlay = document.getElementById("drop-overlay");
@@ -61,6 +62,7 @@ if (
   !sideHeaderEl ||
   !leftPanelEl ||
   !modelListEl ||
+  !uiStatusEl ||
   !debugLogEl ||
   !viewerShell ||
   !dropOverlay
@@ -100,7 +102,7 @@ const pendingRequests = new Map<
 const renderIcons = () =>
   createIcons({
     icons,
-    attrs: { width: "15", height: "15", strokeWidth: "2" },
+    attrs: { width: "18", height: "18", strokeWidth: "2.25" },
   });
 
 const nextRequestId = () => `req-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -111,8 +113,23 @@ const isOnnxLike = (file: File) =>
 const isOnnxLikeName = (name: string) =>
   /\.(onnx|onnxtxt|onnxtext|textproto|json|onnxjson)$/i.test(name);
 
-const setStatus = (message: string) => {
+type UiStatusTone = "info" | "success" | "error";
+
+const setUiStatus = (message: string, tone: UiStatusTone = "info") => {
+  if (!message) {
+    uiStatusEl.classList.add("hidden");
+    uiStatusEl.removeAttribute("data-tone");
+    uiStatusEl.textContent = "";
+    return;
+  }
+  uiStatusEl.classList.remove("hidden");
+  uiStatusEl.dataset.tone = tone;
+  uiStatusEl.textContent = message;
+};
+
+const setStatus = (message: string, tone: UiStatusTone = "info") => {
   addDebugLine(`[status] ${message}`);
+  setUiStatus(message, tone);
 };
 
 const addDebugLine = (line: string) => {
@@ -259,11 +276,11 @@ const appendLoadedCollection = (
 
 const loadFiles = async (files: File[]) => {
   if (files.length === 0) {
-    setStatus("No ONNX file selected.");
+    setStatus("No ONNX file selected.", "error");
     return;
   }
   if (!runtimeReady) {
-    setStatus("Runtime is still initializing...");
+    setStatus("Runtime is still initializing...", "info");
     return;
   }
   for (const [index, file] of files.entries()) {
@@ -273,11 +290,11 @@ const loadFiles = async (files: File[]) => {
       const graphCollections = await convertModel(file.name, bytes);
       appendLoadedCollection(file.name, graphCollections);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : `Failed to convert ${file.name}.`);
+      setStatus(error instanceof Error ? error.message : `Failed to convert ${file.name}.`, "error");
       return;
     }
   }
-  setStatus(`Loaded ${files.length} model(s).`);
+  setStatus(`Loaded ${files.length} model(s).`, "success");
 };
 
 const guessModelNameFromUrl = (urlText: string): string => {
@@ -293,31 +310,171 @@ const guessModelNameFromUrl = (urlText: string): string => {
   return "model.onnx";
 };
 
+type InvalidPayloadKind = "html" | "lfs-pointer";
+
+const detectInvalidDownloadedPayload = (
+  bytes: ArrayBuffer,
+  response: Response,
+): { kind: InvalidPayloadKind; message: string } | null => {
+  const contentType = response.headers.get("content-type") ?? "";
+  const prefix = new Uint8Array(bytes.slice(0, Math.min(bytes.byteLength, 4096)));
+  const headText = new TextDecoder().decode(prefix).trimStart();
+
+  if (
+    contentType.includes("text/html") ||
+    /^<!doctype html/i.test(headText) ||
+    /^<html[\s>]/i.test(headText)
+  ) {
+    return {
+      kind: "html",
+      message: "URL returned an HTML page instead of model bytes. Please use a direct raw/download URL.",
+    };
+  }
+
+  if (
+    headText.startsWith("version https://git-lfs.github.com/spec/v1") &&
+    headText.includes("oid sha256:")
+  ) {
+    return {
+      kind: "lfs-pointer",
+      message:
+        "URL points to a Git LFS pointer file, not the actual model. Please use a real downloadable model URL.",
+    };
+  }
+
+  return null;
+};
+
+const buildLfsFallbackUrls = (url: URL): URL[] => {
+  const fallbacks: URL[] = [];
+
+  if (url.hostname === "raw.githubusercontent.com") {
+    const parts = url.pathname.split("/").filter(Boolean);
+    if (parts.length >= 4) {
+      const [owner, repo, ref, ...pathParts] = parts;
+      fallbacks.push(
+        new URL(
+          `https://media.githubusercontent.com/media/${owner}/${repo}/${ref}/${pathParts.join("/")}`,
+        ),
+      );
+    }
+  }
+
+  if (url.hostname === "github.com") {
+    const parts = url.pathname.split("/").filter(Boolean);
+    if (parts.length >= 5 && parts[2] === "blob") {
+      const [owner, repo, , ref, ...pathParts] = parts;
+      fallbacks.push(
+        new URL(
+          `https://media.githubusercontent.com/media/${owner}/${repo}/${ref}/${pathParts.join("/")}`,
+        ),
+      );
+    }
+  }
+
+  if (url.hostname === "huggingface.co" && url.pathname.includes("/resolve/")) {
+    const withDownloadParam = new URL(url.toString());
+    withDownloadParam.searchParams.set("download", "true");
+    fallbacks.push(withDownloadParam);
+  }
+
+  return fallbacks;
+};
+
+const normalizeModelUrl = (rawUrl: string): URL => {
+  let candidate = rawUrl.trim();
+  if (!candidate) {
+    throw new Error("Please enter a model URL.");
+  }
+  if (!/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(candidate)) {
+    candidate = `https://${candidate}`;
+  }
+  const parsed = new URL(candidate);
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    throw new Error("Only http(s) URLs are supported.");
+  }
+
+  // Convert common GitHub blob links to direct raw file links.
+  if (parsed.hostname === "github.com") {
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (parts.length >= 5 && parts[2] === "blob") {
+      const [owner, repo, , ref, ...pathParts] = parts;
+      return new URL(
+        `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${pathParts.join("/")}`,
+      );
+    }
+  }
+
+  // Convert Hugging Face blob links to resolve links.
+  if (parsed.hostname === "huggingface.co") {
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (parts.length >= 4 && parts[2] === "blob") {
+      parts[2] = "resolve";
+      return new URL(`https://huggingface.co/${parts.join("/")}`);
+    }
+  }
+
+  return parsed;
+};
+
 const loadModelFromUrl = async (rawUrl: string) => {
-  const modelUrl = rawUrl.trim();
-  if (!modelUrl) {
-    setStatus("Please enter a model URL.");
+  let normalizedUrl: URL;
+  try {
+    normalizedUrl = normalizeModelUrl(rawUrl);
+  } catch (error) {
+    setStatus(error instanceof Error ? error.message : "Invalid model URL.", "error");
     return;
   }
   if (!runtimeReady) {
-    setStatus("Runtime is still initializing...");
+    setStatus("Runtime is still initializing...", "info");
     return;
   }
-  setStatus(`Fetching model from URL: ${modelUrl}`);
+  modelUrlInput.value = normalizedUrl.toString();
+  setStatus(`Fetching model from URL: ${normalizedUrl.toString()}`);
   try {
-    const response = await fetch(modelUrl);
-    if (!response.ok) {
-      throw new Error(`URL request failed with status ${response.status}`);
+    const urlCandidates = [normalizedUrl, ...buildLfsFallbackUrls(normalizedUrl)];
+    let lastError: Error | null = null;
+    let loadedBytes: ArrayBuffer | null = null;
+    let loadedFromUrl: URL | null = null;
+
+    for (const [index, candidate] of urlCandidates.entries()) {
+      if (index > 0) {
+        setStatus(`Primary URL returned LFS pointer, retrying: ${candidate.toString()}`);
+      }
+      const response = await fetch(candidate.toString());
+      if (!response.ok) {
+        lastError = new Error(`URL request failed with status ${response.status}`);
+        continue;
+      }
+      const bytes = await response.arrayBuffer();
+      if (bytes.byteLength === 0) {
+        lastError = new Error("Downloaded file is empty.");
+        continue;
+      }
+      const payloadError = detectInvalidDownloadedPayload(bytes, response);
+      if (payloadError?.kind === "lfs-pointer" && index < urlCandidates.length - 1) {
+        lastError = new Error(payloadError.message);
+        continue;
+      }
+      if (payloadError) {
+        throw new Error(payloadError.message);
+      }
+      loadedBytes = bytes;
+      loadedFromUrl = candidate;
+      break;
     }
-    const bytes = await response.arrayBuffer();
-    const modelName = guessModelNameFromUrl(modelUrl);
-    const graphCollections = await convertModel(modelName, bytes);
-    appendLoadedCollection(modelName, graphCollections, modelUrl);
-    setStatus(`Loaded model from URL: ${modelName}`);
+
+    if (!loadedBytes || !loadedFromUrl) {
+      throw (lastError ?? new Error("Failed to download model bytes."));
+    }
+    const modelName = guessModelNameFromUrl(loadedFromUrl.toString());
+    const graphCollections = await convertModel(modelName, loadedBytes);
+    appendLoadedCollection(modelName, graphCollections, loadedFromUrl.toString());
+    setStatus(`Loaded model from URL: ${modelName}`, "success");
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to load model URL.";
-    setStatus(`Failed to load URL model. ${message} (Check CORS and URL accessibility.)`);
+    setStatus(`Failed to load URL model. ${message} (Check CORS and URL accessibility.)`, "error");
   }
 };
 
@@ -337,7 +494,8 @@ worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
   }
   if (data.type === "ready") {
     runtimeReady = true;
-    setStatus("Runtime ready.");
+    loadUrlBtn.disabled = false;
+    setStatus("Runtime ready.", "success");
     const queryUrls = parseUrlModelsFromQuery();
     if (queryUrls.length > 0) {
       void (async () => {
@@ -406,10 +564,11 @@ modelUrlInput.addEventListener("keydown", async (event) => {
 copyShareBtn.addEventListener("click", async () => {
   try {
     await navigator.clipboard.writeText(window.location.href);
-    setStatus("Share URL copied.");
+    setStatus("Share URL copied.", "success");
   } catch (error) {
     setStatus(
       error instanceof Error ? `Failed to copy URL: ${error.message}` : "Failed to copy URL.",
+      "error",
     );
   }
 });
@@ -549,4 +708,6 @@ void applyDefaultTheme().finally(() => {
   renderVisualizerCollections();
   renderIcons();
   clampPanelPositionToViewport();
+  loadUrlBtn.disabled = true;
+  setUiStatus("Initializing runtime...", "info");
 });

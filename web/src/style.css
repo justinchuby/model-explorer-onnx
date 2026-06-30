@@ -106,6 +106,28 @@ body {
   box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.3);
 }
 
+.ui-status {
+  font-size: 11px;
+  line-height: 1.35;
+  border-radius: 8px;
+  padding: 6px 8px;
+  border: 1px solid #dbeafe;
+  background: rgba(219, 234, 254, 0.5);
+  color: #1e3a8a;
+}
+
+.ui-status[data-tone="success"] {
+  border-color: #bbf7d0;
+  background: rgba(220, 252, 231, 0.55);
+  color: #166534;
+}
+
+.ui-status[data-tone="error"] {
+  border-color: #fecaca;
+  background: rgba(254, 226, 226, 0.55);
+  color: #b91c1c;
+}
+
 .ghost-btn {
   width: 28px;
   height: 28px;
@@ -122,6 +144,11 @@ body {
 .ghost-btn:hover {
   border-color: #93c5fd;
   background: #eff6ff;
+}
+
+.ghost-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 #model-list {
