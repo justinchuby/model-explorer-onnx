@@ -49,6 +49,12 @@ Build for static hosting:
 npm run build
 ```
 
+### Install as a desktop app (PWA)
+
+The `web/` app is configured as a Progressive Web App. After deployment (or when
+running locally), open it in a Chromium-based browser and use "Install app" in
+the address bar/menu to install it like a desktop application.
+
 GitHub Pages deployment is configured in
 [`.github/workflows/pages.yaml`](./.github/workflows/pages.yaml).
 
