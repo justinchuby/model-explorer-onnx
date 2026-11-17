@@ -191,7 +191,7 @@ class EmbedIfPass(ir.passes.InPlacePass):
                 continue
 
             outputs = []
-            last_node = None
+            last_node = node
             for attr_name, subgraph in subgraphs:
                 # Assign namespace to all nodes in the subgraph
                 for sub_node in subgraph:
@@ -209,11 +209,15 @@ class EmbedIfPass(ir.passes.InPlacePass):
                 outputs.extend(subgraph.outputs)
                 # Clear the subgraph and move the nodes to the parent graph
                 subgraph.outputs.clear()
+                for name, value in tuple(subgraph.initializers.items()):
+                    del subgraph.initializers[name]
+                    value.name = f"{node.name}/{attr_name}/{name}"
+                    node.graph.register_initializer(value)
                 sub_nodes = tuple(subgraph)
                 subgraph.remove(sub_nodes)
-                node.append(sub_nodes)
-                last_node = sub_nodes[-1]
-            assert last_node is not None
+                if sub_nodes:
+                    last_node.append(sub_nodes)
+                    last_node = sub_nodes[-1]
             # Create a phi node to merge outputs
             phi_node = ir.node(
                 "(Phi)",

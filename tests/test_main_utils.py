@@ -174,9 +174,12 @@ class MainUtilsTest(unittest.TestCase):
         mock_load.return_value = object()
         mock_infer_shapes.side_effect = RuntimeError("shape inference failed")
 
-        subgraph = SimpleNamespace(name=None)
+        class FakeGraph(list):
+            pass
+
+        subgraph = FakeGraph()
         graph_attr = SimpleNamespace(
-            type=ir.AttributeType.GRAPH, value=subgraph, name="body"
+            type=ir.AttributeType.GRAPH, as_graph=lambda: subgraph, name="body"
         )
         graph_node = SimpleNamespace(
             name="branch",
@@ -185,13 +188,14 @@ class MainUtilsTest(unittest.TestCase):
             doc_string="",
         )
 
-        class FakeGraph(list):
-            pass
-
         main_graph = FakeGraph([graph_node])
         main_graph.name = None
         main_graph.metadata_props = {}
-        function = SimpleNamespace(attributes={}, metadata_props={}, doc_string="")
+        function = FakeGraph()
+        function.attributes = {}
+        function.metadata_props = {}
+        function.doc_string = ""
+        function.identifier = lambda: ("custom", "Func", "")
         fake_model = SimpleNamespace(
             graph=main_graph,
             functions={("custom", "Func", ""): function},

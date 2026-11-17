@@ -346,7 +346,7 @@ def create_node(
     for _i, attr in enumerate(onnx_node.attributes.values()):
         if attr.type == ir.AttributeType.GRAPH:
             # The attribute is a subgraph. Add the subgraph ID to the node.
-            node.subgraphIds.append(get_subgraph_name(onnx_node, attr.name))
+            node.subgraphIds.append(attr.as_graph().name)
     return node
 
 
@@ -368,6 +368,16 @@ def add_graph_io(
                 gb.IncomingEdge(
                     sourceNodeId=producer.name,
                     sourceNodeOutputId=str(value.index()),
+                    targetNodeInputId="0",
+                )
+            )
+        elif type_ == "Output" and (value.is_graph_input() or value.is_initializer()):
+            source_id = get_value_node_name(value)
+            node.id = f"[output] {value.name}"
+            node.incomingEdges.append(
+                gb.IncomingEdge(
+                    sourceNodeId=source_id,
+                    sourceNodeOutputId="0",
                     targetNodeInputId="0",
                 )
             )
@@ -487,6 +497,16 @@ def add_initializers(
         graph.nodes.append(node)
 
 
+def iter_subgraphs(graph, prefix=""):
+    for node in graph:
+        for attr in node.attributes.values():
+            if attr.type == ir.AttributeType.GRAPH:
+                child = attr.as_graph()
+                child.name = prefix + get_subgraph_name(node, attr.name)
+                yield node, child
+                yield from iter_subgraphs(child, child.name + "/")
+
+
 def create_graph(
     onnx_graph: ir.Graph | ir.Function,
     all_function_ids: set[ir.OperatorIdentifier],
@@ -589,6 +609,13 @@ class ONNXAdapter(model_explorer.Adapter):
                 "Main graph of ONNX file '%s' does not have a name. Set name to '<main>'",
                 model_path,
             )
+        subgraphs = list(iter_subgraphs(model.graph))
+        for function in model.functions.values():
+            subgraphs.extend(
+                iter_subgraphs(
+                    function, get_function_graph_name(function.identifier()) + "/"
+                )
+            )
         main_graph = create_graph(
             model.graph,
             all_function_ids,
@@ -611,27 +638,24 @@ class ONNXAdapter(model_explorer.Adapter):
         graphs.append(main_graph)
 
         # TODO: Better support subgraphs in nodes: If
-        for node in model.graph:
-            for attr in node.attributes.values():
-                if attr.type == ir.AttributeType.GRAPH:
-                    attr.value.name = get_subgraph_name(node, attr.name)
-                    subgraph = create_graph(
-                        attr.value,
-                        all_function_ids,
-                        opset_version=opset_version,
-                        settings=parsed_settings,
-                        attrs={
-                            "opset_imports": model.opset_imports,
-                            "attributes": node.attributes,
-                            "doc_string": node.doc_string,
-                            **{
-                                f"[metadata] {key}": value
-                                for key, value in node.metadata_props.items()
-                            },
-                        },
-                    )
-                    if subgraph is not None:
-                        graphs.append(subgraph)
+        for node, child in subgraphs:
+            subgraph = create_graph(
+                child,
+                all_function_ids,
+                opset_version=opset_version,
+                settings=parsed_settings,
+                attrs={
+                    "opset_imports": model.opset_imports,
+                    "attributes": node.attributes,
+                    "doc_string": node.doc_string,
+                    **{
+                        f"[metadata] {key}": value
+                        for key, value in node.metadata_props.items()
+                    },
+                },
+            )
+            if subgraph is not None:
+                graphs.append(subgraph)
 
         for function in model.functions.values():
             function_graph = create_graph(
