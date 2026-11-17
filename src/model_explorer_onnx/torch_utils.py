@@ -111,9 +111,10 @@ def save_node_data_from_verification_info(
                 )
             # Always add the node name to the main graph results because we still
             # display the result for the output node.
-            main_graph_results[node_name] = ndb.NodeDataResult(
-                value=getattr(info, field)
-            )
+            error = getattr(info, field)
+            previous = main_graph_results.get(node_name)
+            if previous is None or error > previous.value:
+                main_graph_results[node_name] = ndb.NodeDataResult(value=error)
 
         thresholds: list[ndb.ThresholdItem] = [
             ndb.ThresholdItem(value=0.00001, bgColor="#388e3c"),
@@ -130,7 +131,11 @@ def save_node_data_from_verification_info(
         )
 
         # Construct the data for the model.
-        # "main_graph" is the default graph name produced by the exporter.
-        model_data = ndb.ModelNodeData(graphsData={"main_graph": main_graph_data})
+        graph_name = onnx_model.graph.name
+        model_data = ndb.ModelNodeData(
+            graphsData={
+                graph_name if graph_name is not None else "<main>": main_graph_data
+            }
+        )
 
         model_data.save_to_file(os.path.join(directory, f"{model_name}_{field}.json"))

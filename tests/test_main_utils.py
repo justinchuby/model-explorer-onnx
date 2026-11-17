@@ -192,6 +192,7 @@ class MainUtilsTest(unittest.TestCase):
         main_graph.name = None
         main_graph.metadata_props = {}
         function = FakeGraph()
+        function.opset_imports = {}
         function.attributes = {}
         function.metadata_props = {}
         function.doc_string = ""
