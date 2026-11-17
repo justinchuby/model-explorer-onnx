@@ -21,7 +21,7 @@ type PyodideInterface = {
   loadPackage: (packages: string[]) => Promise<void>;
   runPythonAsync: (code: string) => Promise<unknown>;
   globals: { set: (name: string, value: unknown) => void };
-  FS: { writeFile: (path: string, data: Uint8Array) => void };
+  FS: { unlink: (path: string) => void; writeFile: (path: string, data: Uint8Array) => void };
 };
 
 const postStatus = (message: string) => {
@@ -105,18 +105,20 @@ const handleMessage = async (event: MessageEvent<IncomingMessage>) => {
       throw new Error("Pyodide is not initialized.");
     }
     postStatus(`Converting ${data.modelName}...`);
-    const filePath = "/tmp/input.onnx";
+    const extension = data.modelName.match(/\.(onnx|onnxtxt|onnxtext|textproto|json|onnxjson)$/i)?.[1].toLowerCase() ?? "onnx";
+    const filePath = `/tmp/input.${extension}`;
     pyodide.FS.writeFile(filePath, new Uint8Array(data.bytes));
     pyodide.globals.set("model_settings_js", data.settings ?? {});
     pyodide.globals.set("model_path_js", filePath);
-    const pyResult = await pyodide.runPythonAsync(
+    const runtime = pyodide;
+    const pyResult = await runtime.runPythonAsync(
       `
 def _as_py(value):
     return value.to_py() if hasattr(value, "to_py") else value
 
 convert_onnx_file(_as_py(model_path_js), dict(_as_py(model_settings_js)))
 `,
-    );
+    ).finally(() => runtime.FS.unlink(filePath));
     const result = toJs(pyResult) as { graphs: unknown[] };
     postStatus(`Converted ${data.modelName}.`);
     self.postMessage({

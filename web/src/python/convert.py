@@ -1,6 +1,6 @@
 # NOTE: This file is web-adapted and maintained alongside source adapter.
 # SOURCE_SYNC_FILES: src/model_explorer_onnx/main.py, src/model_explorer_onnx/_passes.py
-# SOURCE_SYNC_SHA256: 2071ea119e5cf81cad278f42a8de33a8b23962279d35fde9c16f178c0e438005
+# SOURCE_SYNC_SHA256: 76d525aa410c7f866202a1e2c94f9ceb2d946cd42b6a1b1b20b9266592a59df8
 
 from __future__ import annotations
 
@@ -359,7 +359,7 @@ def create_node(
         node["subgraphIds"].append(get_function_graph_name(onnx_node.op_identifier()))
     for attr in onnx_node.attributes.values():
         if attr.type == ir.AttributeType.GRAPH:
-            node["subgraphIds"].append(get_subgraph_name(onnx_node, attr.name))
+            node["subgraphIds"].append(attr.as_graph().name)
     return node
 
 
@@ -378,6 +378,16 @@ def add_graph_io(
                 {
                     "sourceNodeId": producer.name,
                     "sourceNodeOutputId": str(value.index()),
+                    "targetNodeInputId": "0",
+                }
+            )
+        elif type_ == "Output" and (value.is_graph_input() or value.is_initializer()):
+            source_id = get_value_node_name(value)
+            node["id"] = f"[output] {value.name}"
+            node["incomingEdges"].append(
+                {
+                    "sourceNodeId": source_id,
+                    "sourceNodeOutputId": "0",
                     "targetNodeInputId": "0",
                 }
             )
@@ -441,6 +451,16 @@ def add_initializers(
             set_attr(metadata, "unused", "True")
         node["outputsMetadata"].append(metadata)
         graph["nodes"].append(node)
+
+
+def iter_subgraphs(graph, prefix=""):
+    for node in graph:
+        for attr in node.attributes.values():
+            if attr.type == ir.AttributeType.GRAPH:
+                child = attr.as_graph()
+                child.name = prefix + get_subgraph_name(node, attr.name)
+                yield node, child
+                yield from iter_subgraphs(child, child.name + "/")
 
 
 def create_graph(
@@ -631,7 +651,7 @@ class EmbedIfPass(ir.passes.InPlacePass):
                 continue
 
             outputs = []
-            last_node = None
+            last_node = node
             for attr_name, subgraph in subgraphs:
                 for sub_node in subgraph:
                     sub_namespace = get_node_namespace(sub_node)
@@ -646,11 +666,15 @@ class EmbedIfPass(ir.passes.InPlacePass):
                 node.attributes.pop(attr_name)
                 outputs.extend(subgraph.outputs)
                 subgraph.outputs.clear()
+                for name, value in tuple(subgraph.initializers.items()):
+                    del subgraph.initializers[name]
+                    value.name = f"{node.name}/{attr_name}/{name}"
+                    node.graph.register_initializer(value)
                 sub_nodes = tuple(subgraph)
                 subgraph.remove(sub_nodes)
-                node.append(sub_nodes)
-                last_node = sub_nodes[-1]
-            assert last_node is not None
+                if sub_nodes:
+                    last_node.append(sub_nodes)
+                    last_node = sub_nodes[-1]
             phi_node = ir.node(
                 "(Phi)",
                 inputs=(*([None] * len(node.outputs)), *[out for out in outputs]),
@@ -705,6 +729,13 @@ def convert_onnx_file(model_path: str, settings: dict[str, Any]) -> dict[str, An
     if model.graph.name is None:
         model.graph.name = "<main>"
 
+    subgraphs = list(iter_subgraphs(model.graph))
+    for function in model.functions.values():
+        subgraphs.extend(
+            iter_subgraphs(
+                function, get_function_graph_name(function.identifier()) + "/"
+            )
+        )
     main_graph = create_graph(
         model.graph,
         all_function_ids=all_function_ids,
@@ -723,26 +754,21 @@ def convert_onnx_file(model_path: str, settings: dict[str, Any]) -> dict[str, An
     assert main_graph is not None
     graphs.append(main_graph)
 
-    for node in model.graph:
-        for attr in node.attributes.values():
-            if attr.type == ir.AttributeType.GRAPH:
-                attr.value.name = get_subgraph_name(node, attr.name)
-                subgraph = create_graph(
-                    attr.value,
-                    all_function_ids=all_function_ids,
-                    opset_version=opset_version,
-                    settings=parsed_settings,
-                    attrs={
-                        "opset_imports": model.opset_imports,
-                        "attributes": node.attributes,
-                        "doc_string": node.doc_string,
-                        **{
-                            f"[metadata] {k}": v for k, v in node.metadata_props.items()
-                        },
-                    },
-                )
-                if subgraph is not None:
-                    graphs.append(subgraph)
+    for node, child in subgraphs:
+        subgraph = create_graph(
+            child,
+            all_function_ids=all_function_ids,
+            opset_version=opset_version,
+            settings=parsed_settings,
+            attrs={
+                "opset_imports": model.opset_imports,
+                "attributes": node.attributes,
+                "doc_string": node.doc_string,
+                **{f"[metadata] {k}": v for k, v in node.metadata_props.items()},
+            },
+        )
+        if subgraph is not None:
+            graphs.append(subgraph)
 
     for function in model.functions.values():
         function_graph = create_graph(

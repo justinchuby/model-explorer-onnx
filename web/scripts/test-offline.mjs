@@ -3,6 +3,8 @@ import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createInterface } from "node:readline";
+import { stripVTControlCharacters } from "node:util";
 import { chromium } from "playwright";
 import { stopPreview } from "./preview-process.mjs";
 
@@ -22,8 +24,8 @@ const launchOptions = {
 };
 try {
   await new Promise((resolve, reject) => {
-    preview.stdout.on("data", (data) => {
-      if (data.toString().includes("http://127.0.0.1:4175")) resolve();
+    createInterface({ input: preview.stdout }).on("line", (line) => {
+      if (stripVTControlCharacters(line).includes("http://127.0.0.1:4175")) resolve();
     });
     preview.once("error", reject);
     preview.once("exit", (code) => reject(new Error(`Preview exited: ${code}`)));
@@ -78,6 +80,17 @@ try {
   await offlinePage.waitForFunction(() => window.visualizerRequests.length > 0, null, { timeout: 30_000 });
   assert.equal(await offlinePage.evaluate(() => window.visualizerRequests.at(-1).groupNodeChildrenCountThreshold), 1_000_000);
   console.log("PASS: offline new page initializes and converts a model selected during startup; theme preserves the 1,000,000 threshold.");
+
+  const textModels = {
+    textproto: 'ir_version: 9 opset_import { version: 18 } graph { name: "demo" }',
+    json: JSON.stringify({ irVersion: "9", opsetImport: [{ version: "18" }], graph: { name: "demo" } }),
+    onnxtxt: '<ir_version: 9, opset_import: ["": 18]> demo (float[1] x) => (float[1] y) { y = Identity(x) }',
+  };
+  for (const [extension, contents] of Object.entries({ ...textModels, onnxjson: textModels.json, onnxtext: textModels.onnxtxt })) {
+    const name = `format.${extension}`;
+    await offlinePage.locator("#model-file").setInputFiles({ name, mimeType: "text/plain", buffer: Buffer.from(contents) });
+    await offlinePage.getByText(name, { exact: true }).first().waitFor();
+  }
 
   // Exercise the actual graph-processing worker beyond its old 1,000-node limit.
   await offlinePage.locator("model-explorer-visualizer").evaluate(element => {

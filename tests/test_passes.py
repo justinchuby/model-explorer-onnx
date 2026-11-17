@@ -31,6 +31,7 @@ class _FakeGraph(list):
     def __init__(self, nodes=(), outputs=()):
         super().__init__(nodes)
         self.meta = {}
+        self.initializers = {}
         self.outputs = list(outputs)
         self.removed = None
 
