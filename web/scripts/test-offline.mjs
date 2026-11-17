@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { once } from "node:events";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "playwright";
+import { stopPreview } from "./preview-process.mjs";
 
 // A one-node Identity ONNX model. No Python installation is needed by the test.
 const model = Buffer.from(
@@ -93,10 +93,20 @@ try {
   assert(!labels.some(label => /^section_/.test(label)));
   assert.deepEqual(errors, []);
   console.log("PASS: a 1,001-node graph processes offline without artificial sections or page errors.");
+
+  // A hard reload may have an active SW without page control. Even if control
+  // never arrives, the app must stop waiting and initialize Python normally.
+  const fallbackPage = await browser.newPage();
+  await fallbackPage.addInitScript(() => {
+    Object.defineProperty(navigator.serviceWorker, "controller", { get: () => null });
+  });
+  await fallbackPage.goto("http://127.0.0.1:4175/");
+  await fallbackPage.locator("#model-file").setInputFiles({ name: "fallback.onnx", mimeType: "application/octet-stream", buffer: model });
+  await fallbackPage.waitForFunction(() => document.querySelector(".model-name")?.textContent === "fallback.onnx", null, { timeout: 60_000 });
+  assert.match(await fallbackPage.locator("#debug-log").textContent(), /Offline cache setup timed out/);
+  console.log("PASS: missing service-worker control times out and queued conversion still completes.");
 } finally {
   await browser?.close();
   await rm(profile, { recursive: true, force: true });
-  const exited = once(preview, "exit");
-  preview.kill();
-  await exited;
+  await stopPreview(preview);
 }

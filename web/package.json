@@ -10,7 +10,8 @@
     "dev": "vite",
     "prebuild": "npm run check:converter-sync && node ./scripts/copy-visualizer-assets.mjs",
     "build": "vite build",
-    "test:offline": "npm run build && node scripts/test-offline.mjs",
+    "test": "node --test scripts/*.test.mjs",
+    "test:offline": "npm test && npm run build && node scripts/test-offline.mjs",
     "preview": "vite preview",
     "postinstall": "node ./scripts/copy-visualizer-assets.mjs"
   },
