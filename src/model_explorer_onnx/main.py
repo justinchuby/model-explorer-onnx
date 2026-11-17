@@ -151,15 +151,19 @@ def set_metadata_props(metadata: gb.MetadataItem, value: ir.Value) -> None:
         set_attr(metadata, f"[metadata] {prop_key}", prop_value)
 
 
+def get_node_schema(node: ir.Node, version: int):
+    domain = "" if node.domain == "ai.onnx" else node.domain
+    if onnx.defs.has(node.op_type, max_inclusive_version=version, domain=domain):
+        return onnx.defs.get_schema(
+            node.op_type, max_inclusive_version=version, domain=domain
+        )
+    return None
+
+
 def add_inputs_metadata(
     onnx_node: ir.Node, node: gb.GraphNode, opset_version: int
 ) -> None:
-    if onnx.defs.has(onnx_node.op_type, max_inclusive_version=opset_version):
-        schema = onnx.defs.get_schema(
-            onnx_node.op_type, max_inclusive_version=opset_version
-        )
-    else:
-        schema = None
+    schema = get_node_schema(onnx_node, opset_version)
     for i, input_value in enumerate(onnx_node.inputs):
         metadata = gb.MetadataItem(id=str(i), attrs=[])
         if input_value is None:
@@ -177,12 +181,7 @@ def add_inputs_metadata(
 
 
 def add_outputs_metadata(onnx_node: ir.Node, node: gb.GraphNode, opset_version: int):
-    if onnx.defs.has(onnx_node.op_type, max_inclusive_version=opset_version):
-        schema = onnx.defs.get_schema(
-            onnx_node.op_type, max_inclusive_version=opset_version
-        )
-    else:
-        schema = None
+    schema = get_node_schema(onnx_node, opset_version)
     for output_value in onnx_node.outputs:
         metadata = gb.MetadataItem(id=str(output_value.index()), attrs=[])
         set_attr(metadata, "__tensor_tag", output_value.name or "None")
@@ -355,7 +354,7 @@ def create_node(
 def add_graph_io(
     graph: gb.Graph,
     input_or_outputs: Sequence[ir.Value],
-    type_: Literal["Input", "Output"],
+    type_: Literal["Input", "Output", "CapturedInput"],
     all_nodes: dict[str, gb.GraphNode],
 ) -> None:
     for i, value in enumerate(input_or_outputs):
@@ -364,7 +363,7 @@ def add_graph_io(
             label=type_,
         )
         producer = value.producer()
-        if producer is not None:
+        if producer is not None and type_ != "CapturedInput":
             assert producer.name, "Bug: Node name is required"
             node.incomingEdges.append(
                 gb.IncomingEdge(
@@ -383,7 +382,7 @@ def add_graph_io(
                     targetNodeInputId="0",
                 )
             )
-        if type_ == "Input":
+        if type_ in {"Input", "CapturedInput"}:
             metadata = gb.MetadataItem(id="0", attrs=[])
             set_attr(metadata, "__tensor_tag", value.name or "")
             set_type_shape_metadata(metadata, value)
@@ -499,14 +498,14 @@ def add_initializers(
         graph.nodes.append(node)
 
 
-def iter_subgraphs(graph, prefix=""):
+def iter_subgraphs(graph, imports, prefix=""):
     for node in graph:
         for attr in node.attributes.values():
             if attr.type == ir.AttributeType.GRAPH:
                 child = attr.as_graph()
                 child.name = prefix + get_subgraph_name(node, attr.name)
-                yield node, child
-                yield from iter_subgraphs(child, child.name + "/")
+                yield node, child, imports
+                yield from iter_subgraphs(child, imports, child.name + "/")
 
 
 def create_graph(
@@ -534,9 +533,20 @@ def create_graph(
             },
         },
     )
+    imports = attrs.get("opset_imports", {})
     graph_inputs = set(onnx_graph.inputs)
     all_nodes = {}
     add_graph_io(graph, onnx_graph.inputs, type_="Input", all_nodes=all_nodes)
+
+    if isinstance(onnx_graph, ir.Graph):
+        captures = dict.fromkeys(
+            value
+            for node in onnx_graph
+            for value in node.inputs
+            if value is not None and value.graph is not onnx_graph
+        )
+        add_graph_io(graph, list(captures), type_="CapturedInput", all_nodes=all_nodes)
+        graph_inputs.update(captures)
 
     for i, onnx_node in enumerate(onnx_graph):
         if not onnx_node.name:
@@ -546,7 +556,10 @@ def create_graph(
             graph_inputs,  # type: ignore
             namespace=graph_name,
             all_function_ids=all_function_ids,
-            opset_version=opset_version,
+            opset_version=imports.get(
+                onnx_node.domain,
+                opset_version if onnx_node.domain in {"", "ai.onnx"} else 0,
+            ),
             settings=settings,
         )  # type: ignore
         if node is None:
@@ -611,11 +624,13 @@ class ONNXAdapter(model_explorer.Adapter):
                 "Main graph of ONNX file '%s' does not have a name. Set name to '<main>'",
                 model_path,
             )
-        subgraphs = list(iter_subgraphs(model.graph))
+        subgraphs = list(iter_subgraphs(model.graph, model.opset_imports))
         for function in model.functions.values():
             subgraphs.extend(
                 iter_subgraphs(
-                    function, get_function_graph_name(function.identifier()) + "/"
+                    function,
+                    function.opset_imports,
+                    get_function_graph_name(function.identifier()) + "/",
                 )
             )
         main_graph = create_graph(
@@ -640,14 +655,14 @@ class ONNXAdapter(model_explorer.Adapter):
         graphs.append(main_graph)
 
         # TODO: Better support subgraphs in nodes: If
-        for node, child in subgraphs:
+        for node, child, imports in subgraphs:
             subgraph = create_graph(
                 child,
                 all_function_ids,
                 opset_version=opset_version,
                 settings=parsed_settings,
                 attrs={
-                    "opset_imports": model.opset_imports,
+                    "opset_imports": imports,
                     "attributes": node.attributes,
                     "doc_string": node.doc_string,
                     **{
@@ -666,7 +681,7 @@ class ONNXAdapter(model_explorer.Adapter):
                 opset_version=opset_version,
                 settings=parsed_settings,
                 attrs={
-                    "opset_imports": model.opset_imports,
+                    "opset_imports": function.opset_imports,
                     "attributes": function.attributes,
                     "doc_string": function.doc_string,
                     **{

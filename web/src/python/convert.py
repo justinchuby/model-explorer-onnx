@@ -1,6 +1,6 @@
 # NOTE: This file is web-adapted and maintained alongside source adapter.
 # SOURCE_SYNC_FILES: src/model_explorer_onnx/main.py, src/model_explorer_onnx/_passes.py
-# SOURCE_SYNC_SHA256: cc80eded148656110915d791cc0a2aba7ba112bbb34238e2e48cd6b65df54738
+# SOURCE_SYNC_SHA256: c566f2b75ee8b86815a05e287ef6fe77e5b709989ca3fad8462c0d6da329d492
 
 from __future__ import annotations
 
@@ -174,15 +174,19 @@ def get_node_output_param_name(
     return None
 
 
+def get_node_schema(node: ir.Node, version: int):
+    domain = "" if node.domain == "ai.onnx" else node.domain
+    if onnx.defs.has(node.op_type, max_inclusive_version=version, domain=domain):
+        return onnx.defs.get_schema(
+            node.op_type, max_inclusive_version=version, domain=domain
+        )
+    return None
+
+
 def add_inputs_metadata(
     onnx_node: ir.Node, node: dict[str, Any], opset_version: int
 ) -> None:
-    if onnx.defs.has(onnx_node.op_type, max_inclusive_version=opset_version):
-        schema = onnx.defs.get_schema(
-            onnx_node.op_type, max_inclusive_version=opset_version
-        )
-    else:
-        schema = None
+    schema = get_node_schema(onnx_node, opset_version)
     for i, input_value in enumerate(onnx_node.inputs):
         metadata = metadata_item(str(i))
         if input_value is None:
@@ -200,12 +204,7 @@ def add_inputs_metadata(
 
 
 def add_outputs_metadata(onnx_node: ir.Node, node: dict[str, Any], opset_version: int):
-    if onnx.defs.has(onnx_node.op_type, max_inclusive_version=opset_version):
-        schema = onnx.defs.get_schema(
-            onnx_node.op_type, max_inclusive_version=opset_version
-        )
-    else:
-        schema = None
+    schema = get_node_schema(onnx_node, opset_version)
     for output_value in onnx_node.outputs:
         metadata = metadata_item(str(output_value.index()))
         set_attr(metadata, "__tensor_tag", output_value.name or "None")
@@ -367,13 +366,13 @@ def create_node(
 def add_graph_io(
     graph: dict[str, Any],
     input_or_outputs: Sequence[ir.Value],
-    type_: Literal["Input", "Output"],
+    type_: Literal["Input", "Output", "CapturedInput"],
     all_nodes: dict[str, dict[str, Any]],
 ) -> None:
     for i, value in enumerate(input_or_outputs):
         node = graph_node(node_id=get_value_node_name(value), label=type_)
         producer = value.producer()
-        if producer is not None:
+        if producer is not None and type_ != "CapturedInput":
             assert producer.name
             node["incomingEdges"].append(
                 {
@@ -392,7 +391,7 @@ def add_graph_io(
                     "targetNodeInputId": "0",
                 }
             )
-        if type_ == "Input":
+        if type_ in {"Input", "CapturedInput"}:
             metadata = metadata_item("0")
             set_attr(metadata, "__tensor_tag", value.name or "")
             set_type_shape_metadata(metadata, value)
@@ -454,14 +453,14 @@ def add_initializers(
         graph["nodes"].append(node)
 
 
-def iter_subgraphs(graph, prefix=""):
+def iter_subgraphs(graph, imports, prefix=""):
     for node in graph:
         for attr in node.attributes.values():
             if attr.type == ir.AttributeType.GRAPH:
                 child = attr.as_graph()
                 child.name = prefix + get_subgraph_name(node, attr.name)
-                yield node, child
-                yield from iter_subgraphs(child, child.name + "/")
+                yield node, child, imports
+                yield from iter_subgraphs(child, imports, child.name + "/")
 
 
 def create_graph(
@@ -489,9 +488,20 @@ def create_graph(
             },
         },
     }
+    imports = attrs.get("opset_imports", {})
     graph_inputs = set(onnx_graph.inputs)
     all_nodes: dict[str, dict[str, Any]] = {}
     add_graph_io(graph, onnx_graph.inputs, type_="Input", all_nodes=all_nodes)
+
+    if isinstance(onnx_graph, ir.Graph):
+        captures = dict.fromkeys(
+            value
+            for node in onnx_graph
+            for value in node.inputs
+            if value is not None and value.graph is not onnx_graph
+        )
+        add_graph_io(graph, list(captures), type_="CapturedInput", all_nodes=all_nodes)
+        graph_inputs.update(captures)
 
     for i, onnx_node in enumerate(onnx_graph):
         if not onnx_node.name:
@@ -501,7 +511,10 @@ def create_graph(
             graph_inputs,
             namespace=graph_name,
             all_function_ids=all_function_ids,
-            opset_version=opset_version,
+            opset_version=imports.get(
+                onnx_node.domain,
+                opset_version if onnx_node.domain in {"", "ai.onnx"} else 0,
+            ),
             settings=settings,
         )
         if node is None:
@@ -730,11 +743,13 @@ def convert_onnx_file(model_path: str, settings: dict[str, Any]) -> dict[str, An
     if model.graph.name is None:
         model.graph.name = "<main>"
 
-    subgraphs = list(iter_subgraphs(model.graph))
+    subgraphs = list(iter_subgraphs(model.graph, model.opset_imports))
     for function in model.functions.values():
         subgraphs.extend(
             iter_subgraphs(
-                function, get_function_graph_name(function.identifier()) + "/"
+                function,
+                function.opset_imports,
+                get_function_graph_name(function.identifier()) + "/",
             )
         )
     main_graph = create_graph(
@@ -755,14 +770,14 @@ def convert_onnx_file(model_path: str, settings: dict[str, Any]) -> dict[str, An
     assert main_graph is not None
     graphs.append(main_graph)
 
-    for node, child in subgraphs:
+    for node, child, imports in subgraphs:
         subgraph = create_graph(
             child,
             all_function_ids=all_function_ids,
             opset_version=opset_version,
             settings=parsed_settings,
             attrs={
-                "opset_imports": model.opset_imports,
+                "opset_imports": imports,
                 "attributes": node.attributes,
                 "doc_string": node.doc_string,
                 **{f"[metadata] {k}": v for k, v in node.metadata_props.items()},
@@ -778,7 +793,7 @@ def convert_onnx_file(model_path: str, settings: dict[str, Any]) -> dict[str, An
             opset_version=opset_version,
             settings=parsed_settings,
             attrs={
-                "opset_imports": model.opset_imports,
+                "opset_imports": function.opset_imports,
                 "attributes": function.attributes,
                 "doc_string": function.doc_string,
                 **{f"[metadata] {k}": v for k, v in function.metadata_props.items()},

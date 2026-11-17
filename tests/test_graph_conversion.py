@@ -11,8 +11,10 @@ from model_explorer_onnx.main import ONNXAdapter
 
 @pytest.fixture(params=["native", "web"])
 def convert(request, tmp_path):
-    def run(graph):
-        model = helper.make_model(graph, opset_imports=[helper.make_opsetid("", 18)])
+    def run(graph, imports=()):
+        model = helper.make_model(
+            graph, opset_imports=[helper.make_opsetid("", 18), *imports]
+        )
         onnx.checker.check_model(model)
         path = tmp_path / "model.onnx"
         onnx.save(model, path)
@@ -114,3 +116,49 @@ def test_nested_loop(convert):
         for ref in node["subgraphIds"]
     }
     assert refs == {graph["id"] for graph in graphs if graph["id"] != "main"}
+
+
+def test_loop_capture_sources(convert):
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "testdata/loop_with_multiple_refs.textproto"
+    )
+    graph = onnx.load(path).graph
+    _, body = convert(graph)
+    nodes = body["nodes"]
+    sources = {node["id"] for node in nodes}
+    assert len(sources) == len(nodes)
+    assert {node["id"] for node in nodes if node["label"] == "CapturedInput"} == {
+        "[value] x_outer",
+        "[value] y_outer",
+    }
+    assert all(
+        edge["sourceNodeId"] in sources
+        for node in nodes
+        for edge in node["incomingEdges"]
+    )
+
+
+def test_schema_domain(convert):
+    graph = helper.make_graph(
+        [
+            helper.make_node("Add", ["x"], ["y"], domain="example", name="custom"),
+            helper.make_node("Add", ["x", "y"], ["z"], name="standard"),
+        ],
+        "domain-test",
+        [value("x")],
+        [value("z")],
+    )
+    (graph,) = convert(graph, [helper.make_opsetid("example", 1)])
+    by_id = {node["id"]: node for node in graph["nodes"]}
+    for key in ("inputsMetadata", "outputsMetadata"):
+        assert all(
+            attr["key"] != "param_name"
+            for meta in by_id["custom"][key]
+            for attr in meta["attrs"]
+        )
+        assert any(
+            attr["key"] == "param_name"
+            for meta in by_id["standard"][key]
+            for attr in meta["attrs"]
+        )
