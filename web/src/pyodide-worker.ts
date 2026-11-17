@@ -8,7 +8,7 @@ type ConvertMessage = {
   settings?: Record<string, unknown>;
 };
 
-type IncomingMessage = ConvertMessage;
+type IncomingMessage = ConvertMessage | { type: "init" };
 
 const ONNX_WHEEL_URL =
   "https://files.pythonhosted.org/packages/82/f3/7996e76defeddd96aed47c7b8f54091672c23943ebaa2ddba3d1d3de5855/onnx_weekly-1.22.0.dev20260511-cp312-abi3-pyemscripten_2026_0_wasm32.whl";
@@ -65,7 +65,7 @@ onnx_wheel_url = (
 # Install ONNX implementation first with matching pyemscripten platform tag.
 await micropip.install(onnx_wheel_url, deps=False)
 # onnx-ir depends on onnx; skip deps to avoid pulling a conflicting onnx wheel.
-await micropip.install("typing_extensions>=4.10", deps=False)
+await micropip.install("typing_extensions==4.14.0", deps=False)
 await micropip.install("onnx-ir==0.2.1", deps=False)
 `);
 
@@ -94,10 +94,13 @@ const toJs = (value: unknown): unknown => {
   return value;
 };
 
-self.onmessage = async (event: MessageEvent<IncomingMessage>) => {
+const handleMessage = async (event: MessageEvent<IncomingMessage>) => {
   const data = event.data;
   try {
     await ensureInitialized();
+    if (data.type === "init") {
+      return;
+    }
     if (!pyodide) {
       throw new Error("Pyodide is not initialized.");
     }
@@ -115,6 +118,7 @@ convert_onnx_file(_as_py(model_path_js), dict(_as_py(model_settings_js)))
 `,
     );
     const result = toJs(pyResult) as { graphs: unknown[] };
+    postStatus(`Converted ${data.modelName}.`);
     self.postMessage({
       type: "result",
       requestId: data.requestId,
@@ -125,7 +129,6 @@ convert_onnx_file(_as_py(model_path_js), dict(_as_py(model_settings_js)))
         },
       ],
     });
-    postStatus(`Converted ${data.modelName}.`);
   } catch (error) {
     let message = "Failed to convert model.";
     let traceback: string | undefined;
@@ -135,16 +138,15 @@ convert_onnx_file(_as_py(model_path_js), dict(_as_py(model_settings_js)))
     }
     self.postMessage({
       type: "error",
-      requestId: data.requestId,
+      requestId: data.type === "convert" ? data.requestId : undefined,
       message,
       traceback,
     });
   }
 };
 
-void ensureInitialized().catch((error) => {
-  self.postMessage({
-    type: "error",
-    message: error instanceof Error ? error.message : "Failed to initialize runtime.",
-  });
-});
+// Pyodide and the temporary input file are shared by all conversion requests.
+let messageQueue = Promise.resolve();
+self.onmessage = (event: MessageEvent<IncomingMessage>) => {
+  messageQueue = messageQueue.then(() => handleMessage(event));
+};

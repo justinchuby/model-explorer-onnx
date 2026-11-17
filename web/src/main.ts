@@ -1,6 +1,7 @@
 import "ai-edge-model-explorer-visualizer";
 import { createIcons, icons } from "lucide";
 import "./style.css";
+import { prepareOfflineCache } from "./offline";
 
 type WorkerStatusMessage = { type: "status"; message: string };
 type WorkerReadyMessage = { type: "ready" };
@@ -77,7 +78,18 @@ if (meGlobal) {
 }
 
 const visualizer = document.createElement("model-explorer-visualizer") as VisualizerElement;
-const worker = new Worker(new URL("./pyodide-worker.ts", import.meta.url), { type: "module" });
+const defaultVisualizerConfig = { artificialLayerNodeCountThreshold: 1_000_000 };
+visualizer.config = defaultVisualizerConfig;
+let worker: Worker;
+let offlineCacheEnabled = false;
+let resolveRuntime: () => void;
+let rejectRuntime: (error: Error) => void;
+const runtimeInitialization = new Promise<void>((resolve, reject) => {
+  resolveRuntime = resolve;
+  rejectRuntime = reject;
+});
+// Startup errors are displayed even when no model has been submitted yet.
+void runtimeInitialization.catch(() => {});
 
 let runtimeReady = false;
 let loadedCollections: GraphCollection[] = [];
@@ -280,8 +292,12 @@ const loadFiles = async (files: File[]) => {
     return;
   }
   if (!runtimeReady) {
-    setStatus("Runtime is still initializing...", "info");
-    return;
+    setStatus("Preparing runtime; selected models are queued...", "info");
+    try {
+      await runtimeInitialization;
+    } catch {
+      return;
+    }
   }
   for (const [index, file] of files.entries()) {
     setStatus(`Converting ${file.name} (${index + 1}/${files.length})...`);
@@ -429,8 +445,12 @@ const loadModelFromUrl = async (rawUrl: string) => {
     return;
   }
   if (!runtimeReady) {
-    setStatus("Runtime is still initializing...", "info");
-    return;
+    setStatus("Preparing runtime; model URL is queued...", "info");
+    try {
+      await runtimeInitialization;
+    } catch {
+      return;
+    }
   }
   modelUrlInput.value = normalizedUrl.toString();
   setStatus(`Fetching model from URL: ${normalizedUrl.toString()}`);
@@ -489,7 +509,7 @@ const parseUrlModelsFromQuery = (): string[] => {
     .filter((u) => u.length > 0);
 };
 
-worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
+const handleWorkerMessage = (event: MessageEvent<WorkerMessage>) => {
   const data = event.data;
   if (data.type === "status") {
     setStatus(data.message);
@@ -497,8 +517,12 @@ worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
   }
   if (data.type === "ready") {
     runtimeReady = true;
+    resolveRuntime();
     loadUrlBtn.disabled = false;
-    setStatus("Runtime ready.", "success");
+    setStatus(
+      offlineCacheEnabled ? "Runtime ready. Offline resources cached." : "Runtime ready.",
+      "success",
+    );
     const queryUrls = parseUrlModelsFromQuery();
     if (queryUrls.length > 0) {
       void (async () => {
@@ -520,6 +544,9 @@ worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
     return;
   }
   if (data.type === "error") {
+    if (!data.requestId) {
+      rejectRuntime(new Error(data.message));
+    }
     const msg = data.traceback ? `${data.message}\n${data.traceback}` : data.message;
     addDebugLine(`[error] ${msg}`);
     if (data.requestId) {
@@ -540,7 +567,7 @@ const applyDefaultTheme = async (): Promise<void> => {
       throw new Error(`Theme request failed with status ${response.status}`);
     }
     const nodeStylerRules = (await response.json()) as unknown[];
-    visualizer.config = { nodeStylerRules };
+    visualizer.config = { ...defaultVisualizerConfig, nodeStylerRules };
   } catch (error) {
     addDebugLine(`[warn] Failed to load default theme: ${String(error)}`);
   }
@@ -595,7 +622,7 @@ debugToggleBtn.addEventListener("click", () => {
 
 const isFileDrag = (event: DragEvent): boolean => {
   const types = event.dataTransfer?.types;
-  return Array.isArray(types) ? types.includes("Files") : Boolean(types?.contains("Files"));
+  return types?.includes("Files") ?? false;
 };
 
 window.addEventListener("dragenter", (event) => {
@@ -728,6 +755,26 @@ void applyDefaultTheme().finally(() => {
   renderVisualizerCollections();
   renderIcons();
   clampPanelPositionToViewport();
-  loadUrlBtn.disabled = true;
-  setUiStatus("Initializing runtime...", "info");
+});
+
+// Start eagerly, independently of model selection and theme loading.
+setUiStatus("Preparing offline cache...", "info");
+void (async () => {
+  try {
+    offlineCacheEnabled = await prepareOfflineCache();
+  } catch (error) {
+    addDebugLine(`[warn] Offline cache unavailable: ${String(error)}`);
+  }
+  setStatus("Initializing runtime...");
+  worker = new Worker(new URL("./pyodide-worker.ts", import.meta.url), { type: "module" });
+  worker.onmessage = handleWorkerMessage;
+  worker.onerror = (event) => {
+    const error = new Error(event.message || "Failed to start Python worker.");
+    rejectRuntime(error);
+    setStatus(error.message, "error");
+  };
+  worker.postMessage({ type: "init" });
+})().catch((error) => {
+  rejectRuntime(error instanceof Error ? error : new Error(String(error)));
+  setStatus(String(error), "error");
 });

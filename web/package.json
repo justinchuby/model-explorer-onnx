@@ -10,6 +10,7 @@
     "dev": "vite",
     "prebuild": "npm run check:converter-sync && node ./scripts/copy-visualizer-assets.mjs",
     "build": "vite build",
+    "test:offline": "npm run build && node scripts/test-offline.mjs",
     "preview": "vite preview",
     "postinstall": "node ./scripts/copy-visualizer-assets.mjs"
   },
@@ -18,6 +19,7 @@
     "lucide": "^0.525.0"
   },
   "devDependencies": {
+    "playwright": "^1.65.1",
     "typescript": "^5.6.2",
     "vite": "^8.1.2",
     "vite-plugin-pwa": "^1.3.0"

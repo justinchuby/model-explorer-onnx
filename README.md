@@ -55,6 +55,31 @@ The `web/` app is configured as a Progressive Web App. After deployment (or when
 running locally), open it in a Chromium-based browser and use "Install app" in
 the address bar/menu to install it like a desktop application.
 
+The page warms up Python and the ONNX converter immediately. Models selected
+during startup wait for initialization automatically. The visualizer uses a
+1,000,000-node grouping threshold to avoid artificial sections for typical models.
+
+For offline use, open a production build (`npm run build` then `npm run preview`,
+or the deployed HTTPS site) online once and wait for "Offline resources cached".
+The app caches the UI, visualizer assets, Python runtime, package metadata, and
+wheels without a time-based expiry. Subsequent visits can convert local files
+offline. Python still initializes from cached resources on each page load;
+browser cache clearing or eviction requires another online warmup. Development
+mode does not install the offline service worker. Model URLs still need network
+access.
+
+Run the browser regression test (requires internet for its initial warmup):
+
+```bash
+cd web
+npx playwright install chromium
+npm run test:offline
+```
+
+Alternatively, set `PLAYWRIGHT_EXECUTABLE_PATH` to an installed Chromium/Chrome
+executable. The test checks eager startup, offline reload and conversion, queued
+file selection, and a graph above the old section threshold.
+
 GitHub Pages deployment is configured in
 [`.github/workflows/pages.yaml`](./.github/workflows/pages.yaml).
 

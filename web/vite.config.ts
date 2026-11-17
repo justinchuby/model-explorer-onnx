@@ -6,7 +6,9 @@ export default defineConfig({
   plugins: [
     VitePWA({
       registerType: "autoUpdate",
-      injectRegister: "auto",
+      // main.ts registers before creating the Python worker so the first visit
+      // caches runtime downloads too.
+      injectRegister: false,
       includeAssets: ["themes/netron.json"],
       manifest: {
         name: "Model Explorer ONNX",
@@ -37,28 +39,25 @@ export default defineConfig({
         ],
       },
       workbox: {
-        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        globPatterns: ["**/*.{js,css,html,json,png,svg,ico,wasm,woff,woff2}"],
+        maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
+        clientsClaim: true,
+        skipWaiting: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/.*/i,
             handler: "CacheFirst",
             options: {
               cacheName: "cdn-jsdelivr",
-              expiration: {
-                maxEntries: 30,
-                maxAgeSeconds: 60 * 60 * 24 * 30,
-              },
+              cacheableResponse: { statuses: [200] },
             },
           },
           {
-            urlPattern: /^https:\/\/files\.pythonhosted\.org\/.*/i,
+            urlPattern: /^https:\/\/(files\.pythonhosted\.org|pypi\.org)\/.*/i,
             handler: "CacheFirst",
             options: {
               cacheName: "python-wheels",
-              expiration: {
-                maxEntries: 20,
-                maxAgeSeconds: 60 * 60 * 24 * 30,
-              },
+              cacheableResponse: { statuses: [200] },
             },
           },
         ],
