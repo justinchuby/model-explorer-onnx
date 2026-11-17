@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
+
 import onnx_ir as ir
 import onnx_ir.passes.common as common_passes
-
 
 logger = logging.getLogger(__name__)
 
@@ -63,18 +63,18 @@ class ImplicitUseAnalysisPass(ir.passes.InPlacePass):
                 graph_stack.append(subgraph)
                 if subgraph not in implicit_usages:
                     implicit_usages[subgraph] = []
-                for node in subgraph:
-                    process_node(node, subgraph)
-                    self._iterate_subgraphs(node, implicit_usages, graph_stack)
+                for child in subgraph:
+                    process_node(child, subgraph)
+                    self._iterate_subgraphs(child, implicit_usages, graph_stack)
                 graph_stack.pop()
             elif attr.type == ir.AttributeType.GRAPHS:
                 for subgraph in attr.as_graphs():
                     graph_stack.append(subgraph)
                     if subgraph not in implicit_usages:
                         implicit_usages[subgraph] = []
-                    for node in subgraph:
-                        process_node(node, subgraph)
-                        self._iterate_subgraphs(node, implicit_usages, graph_stack)
+                    for child in subgraph:
+                        process_node(child, subgraph)
+                        self._iterate_subgraphs(child, implicit_usages, graph_stack)
                     graph_stack.pop()
 
     def call(self, model: ir.Model) -> ir.passes.PassResult:

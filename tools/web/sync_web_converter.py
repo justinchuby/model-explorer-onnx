@@ -7,7 +7,6 @@ import pathlib
 import re
 import sys
 
-
 SYNC_SOURCES = [
     "src/model_explorer_onnx/main.py",
     "src/model_explorer_onnx/_passes.py",

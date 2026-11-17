@@ -1,10 +1,10 @@
 import json
 from collections import defaultdict
-from typing import Sequence
+from collections.abc import Sequence
 
 
 def rgb(r: int, g: int, b: int) -> str:
-    return "#%02x%02x%02x" % (r, g, b)
+    return f"#{r:02x}{g:02x}{b:02x}"
 
 
 # https://github.com/lutzroeder/netron/blob/0408dc7fb856f1e97cc23d8d91000b1f5bd487ac/source/grapher.css#L130
