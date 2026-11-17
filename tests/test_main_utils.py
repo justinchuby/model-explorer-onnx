@@ -12,9 +12,9 @@ import onnx_ir as ir
 from onnx import TensorProto, helper
 
 from model_explorer_onnx.main import (
+    _DEFAULT_OPSET_VERSION,
     ONNXAdapter,
     Settings,
-    _DEFAULT_OPSET_VERSION,
     _parse_namespace,
     can_display_tensor_json,
     create_graph,

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import TYPE_CHECKING, Collection
+from collections.abc import Collection
+from typing import TYPE_CHECKING
 
 import onnx_ir as ir
 from model_explorer import node_data_builder as ndb

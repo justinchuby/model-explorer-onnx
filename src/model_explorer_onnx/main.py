@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Literal, Sequence
+from collections.abc import Sequence
+from typing import Any, Literal
 
 import model_explorer
-from model_explorer_onnx import _passes
 import numpy as np
 import onnx
 import onnx_ir as ir
 from model_explorer import graph_builder as gb
+
+from model_explorer_onnx import _passes
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +36,7 @@ def can_display_tensor_json(
     del settings  # Unused
     if tensor is None:
         return False
-    if isinstance(tensor, ir.ExternalTensor):
-        return False
-    return True
+    return not isinstance(tensor, ir.ExternalTensor)
 
 
 def display_tensor_json(
@@ -55,7 +55,7 @@ def display_tensor_json(
         return json.dumps(
             (array.flatten())[:size_limit].tolist(), separators=(",", ":")
         )
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - best-effort model visualization
         logger.warning("Failed to display tensor (%s): %s", tensor, e)
     return ""
 
@@ -108,7 +108,7 @@ def get_node_input_param_name(
             # The last input is variadic. Return the name of the last input.
             return schema.inputs[-1].name
         return None
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - best-effort model visualization
         logger.warning("Failed to get input schema name: %s", e)
     return None
 
@@ -130,7 +130,7 @@ def get_node_output_param_name(
             # The last input is variadic. Return the name of the last input.
             return schema.outputs[-1].name
         return None
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - best-effort model visualization
         logger.warning("Failed to get output schema name: %s", e)
 
 
@@ -168,9 +168,11 @@ def add_inputs_metadata(
             set_attr(metadata, "__tensor_tag", input_value.name or "None")
             set_type_shape_metadata(metadata, input_value)
             set_metadata_props(metadata, input_value)
-        if schema is not None:
-            if (param_name := get_node_input_param_name(schema, i)) is not None:
-                set_attr(metadata, "param_name", param_name)
+        if (
+            schema is not None
+            and (param_name := get_node_input_param_name(schema, i)) is not None
+        ):
+            set_attr(metadata, "param_name", param_name)
         node.inputsMetadata.append(metadata)
 
 
@@ -400,7 +402,7 @@ def get_constant_namespace(initializer: ir.Value, root_namespace: str) -> str:
     # A single node can have multiple uses of the same value.
     # Here we only count the unique nodes that use the initializer to push the
     # initializer to the same namespace as much as possible.
-    user_nodes = tuple(set(node for node, _ in initializer.uses()))
+    user_nodes = tuple({node for node, _ in initializer.uses()})
     if not user_nodes:
         # The initializer is not used by any node. Keep it in the root namespace.
         return initializer_namespace
@@ -588,7 +590,7 @@ class ONNXAdapter(model_explorer.Adapter):
         onnx_model = onnx.load(model_path, load_external_data=False)
         try:
             onnx_model = onnx.shape_inference.infer_shapes(onnx_model, data_prop=True)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - best-effort model visualization
             logger.warning(
                 "Failed to infer shapes. Continue with the original model. Error: %s", e
             )

@@ -10,6 +10,8 @@ https://huggingface.co/spaces/justinchuby/model-explorer
 
 ## Installation
 
+The Python adapter requires Python 3.10 or later.
+
 ```bash
 pip install --upgrade model-explorer-onnx
 ```

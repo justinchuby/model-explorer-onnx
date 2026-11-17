@@ -4,7 +4,7 @@ This demonstrates how to use onnx_ir to build models with subgraphs.
 """
 
 import onnx
-from onnx import helper, TensorProto
+from onnx import TensorProto, helper
 
 
 def create_loop_model_with_outer_references():

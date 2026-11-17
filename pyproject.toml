@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=77"]
+requires = ["setuptools>=84.2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,7 +8,7 @@ version = "0.4.2"
 description = "Adapter for ai-edge-model-explorer to support ONNX models"
 authors = [{ name = "Justin Chu", email = "justinchu@microsoft.com" }]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "MIT"
 keywords = ["onnx", "model-explorer", "visualization"]
 classifiers = [
@@ -20,10 +20,12 @@ classifiers = [
 ]
 
 dependencies = [
-  "ai-edge-model-explorer>=0.1.10",
-  "numpy",
-  "onnx",
-  "onnx_ir>=0.1.13",
+  "ai-edge-model-explorer>=0.1.34",
+  "numpy>=2.5.5; python_version >= '3.12'",
+  "numpy>=2.4.6; python_version == '3.11'",
+  "numpy>=2.2.6; python_version == '3.10'",
+  "onnx>=1.23.2",
+  "onnx_ir>=1.1.0",
 ]
 
 [project.scripts]
