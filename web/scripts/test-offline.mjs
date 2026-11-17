@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { chromium } from "playwright";
 
 // A one-node Identity ONNX model. No Python installation is needed by the test.
@@ -11,7 +14,12 @@ const model = Buffer.from(
 const preview = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "preview", "--host", "127.0.0.1", "--port", "4175", "--strictPort"], {
   stdio: ["ignore", "pipe", "inherit"],
 });
+const profile = await mkdtemp(join(tmpdir(), "onnx-offline-test-"));
 let browser;
+const launchOptions = {
+  headless: true,
+  executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined,
+};
 try {
   await new Promise((resolve, reject) => {
     preview.stdout.on("data", (data) => {
@@ -20,12 +28,9 @@ try {
     preview.once("error", reject);
     preview.once("exit", (code) => reject(new Error(`Preview exited: ${code}`)));
   });
-  browser = await chromium.launch({
-    headless: true,
-    executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH || undefined,
-  });
-  const context = await browser.newContext();
-  await context.addInitScript(() => {
+  browser = await chromium.launchPersistentContext(profile, launchOptions);
+  const context = browser;
+  const recordWorkers = () => {
     window.visualizerRequests = [];
     window.visualizerResults = [];
     const NativeWorker = window.Worker;
@@ -41,7 +46,8 @@ try {
         return super.postMessage(data, ...args);
       }
     };
-  });
+  };
+  await context.addInitScript(recordWorkers);
   const page = await context.newPage();
   await page.goto("http://127.0.0.1:4175/");
   // No model is supplied: opening the page alone must warm all dependencies.
@@ -55,11 +61,12 @@ try {
     assert(urls.some(url => url.includes(resource)), `Missing offline resource: ${resource}`);
   }
   console.log("PASS: fresh visit eagerly initializes Python and caches runtime, wheels, metadata, and visualizer assets.");
-  await page.close();
+  await context.close();
 
-  // A new document/worker must initialize using only persistent browser caches.
-  await context.setOffline(true);
-  const offlinePage = await context.newPage();
+  // Restart the browser offline: HTTP memory caches cannot satisfy this test.
+  browser = await chromium.launchPersistentContext(profile, { ...launchOptions, offline: true });
+  await browser.addInitScript(recordWorkers);
+  const offlinePage = await browser.newPage();
   const errors = [];
   offlinePage.on("pageerror", error => errors.push(error.message));
   await offlinePage.goto("http://127.0.0.1:4175/");
@@ -88,6 +95,7 @@ try {
   console.log("PASS: a 1,001-node graph processes offline without artificial sections or page errors.");
 } finally {
   await browser?.close();
+  await rm(profile, { recursive: true, force: true });
   const exited = once(preview, "exit");
   preview.kill();
   await exited;
