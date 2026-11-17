@@ -59,7 +59,7 @@ try {
     const entries = await Promise.all((await caches.keys()).map(async key => (await (await caches.open(key)).keys()).map(request => request.url)));
     return entries.flat();
   });
-  for (const resource of ["pyodide.asm.wasm", "python_stdlib.zip", "onnx_weekly-", "onnx_ir-", "typing_extensions-", "pypi.org/simple/onnx-ir/", "FontRegular.png", "FontRegular.json", "/worker.js"]) {
+  for (const resource of ["pyodide.asm.wasm", "python_stdlib.zip", "onnx-1.23.2-", "onnx_ir-", "typing_extensions-", "FontRegular.png", "FontRegular.json", "/worker.js"]) {
     assert(urls.some(url => url.includes(resource)), `Missing offline resource: ${resource}`);
   }
   console.log("PASS: fresh visit eagerly initializes Python and caches runtime, wheels, metadata, and visualizer assets.");

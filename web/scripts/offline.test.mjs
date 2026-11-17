@@ -3,13 +3,11 @@ import { getEventListeners } from "node:events";
 import { readFile } from "node:fs/promises";
 import { setImmediate } from "node:timers/promises";
 import test from "node:test";
-import ts from "typescript";
+import { stripTypeScriptTypes } from "node:module";
 
 // Exercise the browser-independent lifecycle code without a bundler or network.
 const source = await readFile(new URL("../src/offline.ts", import.meta.url), "utf8");
-const { outputText } = ts.transpileModule(source, {
-  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
-});
+const outputText = stripTypeScriptTypes(source);
 const { waitForOfflineControl } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
 const fixture = () => {
   const active = Object.assign(new EventTarget(), { state: "activated" });

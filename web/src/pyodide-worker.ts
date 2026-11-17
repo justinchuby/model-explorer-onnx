@@ -11,8 +11,8 @@ type ConvertMessage = {
 type IncomingMessage = ConvertMessage | { type: "init" };
 
 const ONNX_WHEEL_URL =
-  "https://files.pythonhosted.org/packages/82/f3/7996e76defeddd96aed47c7b8f54091672c23943ebaa2ddba3d1d3de5855/onnx_weekly-1.22.0.dev20260511-cp312-abi3-pyemscripten_2026_0_wasm32.whl";
-const PYODIDE_INDEX_URL = "https://cdn.jsdelivr.net/pyodide/v314.0.2/full/";
+  "https://files.pythonhosted.org/packages/ec/ef/0a69093ffa0b999747b373c75d07182a812722a0e595d21f763a8d406260/onnx-1.23.2-cp312-abi3-pyemscripten_2026_0_wasm32.whl";
+const PYODIDE_INDEX_URL = "https://cdn.jsdelivr.net/pyodide/v314.0.8/full/";
 
 let pyodide: PyodideInterface | null = null;
 let initPromise: Promise<void> | null = null;
@@ -65,8 +65,8 @@ onnx_wheel_url = (
 # Install ONNX implementation first with matching pyemscripten platform tag.
 await micropip.install(onnx_wheel_url, deps=False)
 # onnx-ir depends on onnx; skip deps to avoid pulling a conflicting onnx wheel.
-await micropip.install("typing_extensions==4.14.0", deps=False)
-await micropip.install("onnx-ir==0.2.1", deps=False)
+await micropip.install("https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl", deps=False)
+await micropip.install("https://files.pythonhosted.org/packages/eb/80/1a63440081d94e25b96be6b29119f41119fe5c9521063edbdb7baeeb9589/onnx_ir-1.1.0-py3-none-any.whl", deps=False)
 `);
 
     postStatus("Loading converter...");
