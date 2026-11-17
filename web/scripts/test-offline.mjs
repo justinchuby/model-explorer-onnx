@@ -3,6 +3,8 @@ import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createInterface } from "node:readline";
+import { stripVTControlCharacters } from "node:util";
 import { chromium } from "playwright";
 import { stopPreview } from "./preview-process.mjs";
 
@@ -22,8 +24,8 @@ const launchOptions = {
 };
 try {
   await new Promise((resolve, reject) => {
-    preview.stdout.on("data", (data) => {
-      if (data.toString().includes("http://127.0.0.1:4175")) resolve();
+    createInterface({ input: preview.stdout }).on("line", (line) => {
+      if (stripVTControlCharacters(line).includes("http://127.0.0.1:4175")) resolve();
     });
     preview.once("error", reject);
     preview.once("exit", (code) => reject(new Error(`Preview exited: ${code}`)));
