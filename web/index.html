@@ -15,24 +15,25 @@
           <button
             id="sidebar-toggle"
             class="ghost-btn"
-            title="Toggle sidebar"
-            aria-label="Toggle sidebar"
+            title="Collapse models panel"
+            aria-label="Collapse models panel"
+            aria-controls="left-panel"
           >
-            <i data-lucide="list"></i>
+            <i data-lucide="panel-left-close"></i>
           </button>
           <div class="side-title">
             <span>Models</span>
           </div>
           <div class="side-header-actions">
-            <label
+            <button
               id="add-files-btn"
               class="ghost-btn"
-              for="model-file"
-              title="Add model files"
-              aria-label="Add model files"
+              type="button"
+              title="Open model files"
             >
               <i data-lucide="plus"></i>
-            </label>
+              Open files
+            </button>
             <button
               id="debug-toggle"
               class="ghost-btn"
@@ -51,36 +52,38 @@
           />
         </div>
         <div class="url-loader">
-          <input id="model-url-input" type="url" placeholder="Load model from URL" />
+          <input id="model-url-input" type="url" aria-label="Model URL" placeholder="Load model from URL" />
           <button
             id="load-url-btn"
             class="ghost-btn"
             title="Load URL model"
-            aria-label="Load URL model"
+            aria-label="Load model from URL"
           >
-            <i data-lucide="link-2"></i>
-          </button>
-          <button
-            id="copy-share-btn"
-            class="ghost-btn"
-            title="Copy share URL"
-            aria-label="Copy share URL"
-          >
-            <i data-lucide="share-2"></i>
+            Load
           </button>
         </div>
         <div id="ui-status" class="ui-status hidden" aria-live="polite"></div>
         <div id="model-list"></div>
+        <button
+          id="copy-share-btn"
+          class="ghost-btn hidden"
+          title="Copy a link to all URL-loaded models"
+        >
+          <i data-lucide="share-2"></i>
+          Copy models link
+        </button>
         <pre id="debug-log" class="debug-log hidden"></pre>
       </aside>
       <section id="viewer-shell" class="viewer-shell"></section>
       <button
         id="sidebar-fab"
         class="sidebar-fab hidden"
+        aria-controls="left-panel"
         title="Open models panel"
         aria-label="Open models panel"
       >
-        <i data-lucide="list"></i>
+        <i data-lucide="folder-open"></i>
+        Models
       </button>
     </main>
     <div id="drop-overlay" class="drop-overlay hidden">

@@ -177,15 +177,14 @@ const updateShareQueryParams = () => {
 };
 
 const renderModelList = () => {
+  copyShareBtn.classList.toggle("hidden", !loadedCollections.some(c => c.sourceUrl));
   modelListEl.replaceChildren();
   if (loadedCollections.length === 0) {
     const emptyState = document.createElement("div");
     emptyState.className = "model-list-empty";
     emptyState.innerHTML = `
       <div class="model-list-empty-title">No models loaded</div>
-      <div class="model-list-empty-hint">Paste a model URL and click the link button</div>
-      <div class="model-list-empty-hint">Or click + to open local files</div>
-      <div class="model-list-empty-hint">Or drag ONNX files anywhere on this page</div>
+      <div class="model-list-empty-hint">Open files, drop them anywhere on the page, or load a model from a URL.</div>
     `;
     modelListEl.appendChild(emptyState);
     return;
@@ -573,6 +572,8 @@ const applyDefaultTheme = async (): Promise<void> => {
   }
 };
 
+document.getElementById("add-files-btn")!.addEventListener("click", () => fileInput.click());
+
 fileInput.addEventListener("change", async () => {
   const files = Array.from(fileInput.files ?? []).filter(isOnnxLike);
   await loadFiles(files);
@@ -604,7 +605,9 @@ copyShareBtn.addEventListener("click", async () => {
 });
 
 sidebarToggleBtn.addEventListener("click", () => {
-  appEl.classList.toggle("sidebar-collapsed");
+  appEl.classList.add("sidebar-collapsed");
+  leftPanelEl.inert = true;
+  sidebarFabBtn.focus();
 });
 
 sidebarFabBtn.addEventListener("click", () => {
@@ -613,6 +616,9 @@ sidebarFabBtn.addEventListener("click", () => {
     return;
   }
   appEl.classList.remove("sidebar-collapsed");
+  leftPanelEl.inert = false;
+  clampPanelPositionToViewport();
+  sidebarToggleBtn.focus();
 });
 
 debugToggleBtn.addEventListener("click", () => {

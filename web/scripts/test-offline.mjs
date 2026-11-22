@@ -55,6 +55,21 @@ try {
   // No model is supplied: opening the page alone must warm all dependencies.
   await page.waitForFunction(() => document.querySelector("#ui-status")?.textContent.includes("Offline resources cached"), null, { timeout: 180_000 });
   assert.equal(await page.locator(".model-item").count(), 0);
+  for (const width of [1280, 320]) {
+    await page.setViewportSize({ width, height: 720 });
+    await page.getByRole("button", { name: "Collapse models panel" }).click();
+    const openPanel = page.getByRole("button", { name: "Open models panel" });
+    assert(await openPanel.evaluate(button => button === document.activeElement));
+    await openPanel.press("Enter");
+    const bounds = await page.locator("#left-panel").boundingBox();
+    assert(bounds && bounds.x >= 0 && bounds.x + bounds.width <= width);
+    const [chooser] = await Promise.all([
+      page.waitForEvent("filechooser"),
+      page.getByRole("button", { name: "Open files" }).press("Enter"),
+    ]);
+    assert(chooser.isMultiple());
+    assert.equal(await page.locator("#copy-share-btn").isVisible(), false);
+  }
   const urls = await page.evaluate(async () => {
     const entries = await Promise.all((await caches.keys()).map(async key => (await (await caches.open(key)).keys()).map(request => request.url)));
     return entries.flat();
