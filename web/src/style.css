@@ -33,7 +33,8 @@ body {
   position: absolute;
   top: var(--panel-top);
   left: var(--panel-left);
-  width: min(360px, calc(100vw - 28px));
+  box-sizing: border-box;
+  width: min(386px, calc(100vw - 28px));
   max-height: min(72vh, 680px);
   z-index: 100000;
   border: 1px solid rgba(255, 255, 255, 0.7);
@@ -101,7 +102,7 @@ body {
 
 .url-loader {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 6px;
   align-items: center;
 }
@@ -277,15 +278,17 @@ body {
   top: var(--panel-top);
   left: var(--panel-left);
   z-index: 100001;
-  width: 44px;
-  height: 44px;
-  border-radius: 999px;
-  border: 1px solid rgba(147, 197, 253, 0.95);
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-  backdrop-filter: blur(18px) saturate(150%);
-  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.34);
-  color: #fff;
+  height: 36px;
+  gap: 7px;
+  padding: 0 12px;
+  border-radius: 9px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+  color: #334155;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -296,6 +299,31 @@ body {
   transition:
     opacity 180ms ease,
     transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+#add-files-btn,
+#load-url-btn,
+#copy-share-btn {
+  width: auto;
+  gap: 4px;
+  padding: 0 9px;
+  font-family: inherit;
+  font-weight: 600;
+}
+
+#copy-share-btn {
+  align-self: flex-start;
+}
+
+.sidebar-fab:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.sidebar-fab:focus-visible,
+.ghost-btn:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }
 
 model-explorer-visualizer {
